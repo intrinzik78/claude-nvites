@@ -1,105 +1,89 @@
 ---
 name: dispatch
-description: Optional. Deliver cross-cutting context to a worktree that the agent can't discover from files alone. Run from dev before opening a worktree session.
+description: Create a dispatch file in docs/dispatches/. Use when directing future work to a branch/worktree — features, blocking changes, or tasks to pick up later.
 ---
 
-# Dispatch — Primary-to-Worktree Assignment
+# Dispatch
 
-Dispatch a directed assignment to a worktree. This creates a `DISPATCH.md` file that the worktree agent reads at `/orient`, giving it curated context instead of cold-starting.
-
-Use dispatch when you have context the agent can't find in the repo — customer feedback, requirements changes, observations from testing, cross-cutting decisions that affect the workstream.
+Create a dispatch in `docs/dispatches/`. Dispatches are the user's "I'll need this later" tool — a recognized task, feature, or blocking change directed at a specific workstream.
 
 ## Invocation
 
-`/dispatch <target> "<priority description>"`
+`/dispatch <target> <description>`
 
-- `<target>` — worktree name (e.g., `surface-website`, `server`, `cli-tako`, `surface-command-center`)
-- `<priority description>` — one-line task description
+- `<target>` — branch/worktree name or prefix shorthand (see table)
+- `<description>` — natural language description of the work
 
-Example: `/dispatch surface-website "Build /gallery page with album grid and lightbox"`
+Example: `/dispatch server update the dispatch skill with the new workflow`
 
-## Step 0: Validate
+## Prefix Map
 
-1. **Branch check:** Confirm you are on `dev`. If not, stop — dispatch runs from dev because the primary thread has cross-cutting context. Tell the user to switch to dev first.
-2. **Target resolution:** Resolve the target name to a path:
-   - `<target>` → `/home/zik/programming/uwz/worktrees/<target>/DISPATCH.md`
-   - If the worktree directory does not exist, stop and tell the user. Do not create directories.
-3. **Existing dispatch:** If a `DISPATCH.md` already exists at the target path, note this — the new dispatch will overwrite it. Mention the existing dispatch title to the user so they're aware.
+| Target | Prefix | Branch / worktree |
+|--------|--------|-------------------|
+| `dev` | `DEV_` | dev |
+| `server` | `SERVER_` | server |
+| `website` | `WEBSITE_` | surface-website |
+| `command` | `COMMAND_` | surface-command-center |
+| `tako` | `TAKO_` | cli-tako |
 
-## Step 1: Gather Context
+## Steps
 
-Two tool calls — no subagent:
+### 1. Resolve filename
 
-1. **Git history** — Run `git -C /home/zik/programming/uwz/worktrees/<target> log --oneline -5` to see recent commits. Flag any that overlap with the priority description.
-2. **Latest handoff** — Read the most recent handoff from `handoffs/<target>/` (or `handoffs/<target-domain>/`). Extract open questions, blockers, and unblocks relevant to the priority.
+Map `<target>` to its prefix. Derive a short `SCREAMING_SNAKE` task name from the description.
 
-### After gathering
+Result: `docs/dispatches/{PREFIX}_{TASK_NAME}.md`
 
-1. **Evidence check** — Review the git history and handoff signals. If the work appears already done or substantially complete, **stop and tell the user** what you found — don't write a dispatch for shipped work. If partially done, narrow the priority description to what remains.
-2. **Conversation context** — Add relevant decisions, discoveries, or constraints from the current conversation that aren't captured in handoffs. Only the main thread has this context.
-3. **Curate** — Select the 2-5 most relevant signals for the Context section. Discard the rest.
+Example: `/dispatch server update the dispatch skill` → `docs/dispatches/SERVER_DISPATCH_SKILL.md`
 
-**Antipattern — dispatching shipped work.** If commits or handoffs show the priority is already done, don't write the dispatch. Tell the user what you found. This is the most wasteful failure mode — an agent spends a full session rediscovering completed work.
+### 2. Draft
 
-**Antipattern — context dump.** The Context section should have 2-5 bullets. If you're writing more than 5, you're including things the agent doesn't need. Curate ruthlessly.
+Spawn a **sonnet subagent** to draft the dispatch. The subagent should:
 
-## Step 2: Assemble Draft
-
-Build the DISPATCH.md using this format:
+- Use conversation context and the user's description to write the dispatch
+- Keep it tight — this is a note for a future agent, not a design doc
+- Use this format:
 
 ```markdown
 # Dispatch: <one-line title>
 
 **Date:** YYYY-MM-DD
-**From:** dev
-**Workstream:** <target>
+**Workstream:** <target branch>
 
----
+## Problem
 
-## Priority
+<What needs to happen and why. 1-3 sentences.>
 
-<Specific task. Name files, types, endpoints, components. One paragraph max.>
+## Reasoning
 
-## Context
+<Why this matters now, dependencies, constraints, relevant decisions (DEC-### refs if applicable). 2-5 bullets max.>
 
-<2-5 bullets of relevant recent signals — DEC-### references, handoff
-discoveries, unblocks from other workstreams. Only what matters for the
-priority task.>
+## Proposed Solution
 
-## Dependencies
+<Concrete approach if known. Name files, types, endpoints. If no solution is obvious, say so — the receiving agent will figure it out.>
 
-- BLOCKED: <what this workstream is waiting on>
-- BLOCKING: <what others are waiting on from this workstream>
+## Confidence
 
-## Quality Gates
-
-<Completion criteria beyond standard build gates.>
+**High/Medium/Low** — <one line explaining the confidence level>
 ```
 
-**Rules for assembly:**
-- Priority is singular — one task, not a menu.
-- Omit Dependencies section if there are none.
-- Omit Quality Gates section if standard build gates suffice (`cargo xtask build-all`, `pnpm check`).
-- Keep the total document under 40 lines. This is a dispatch, not a design doc.
+**Rules:**
+- Under 50 lines total. This is a dispatch, not a design doc.
+- Omit Proposed Solution if genuinely unknown — the section header too.
+- Omit Reasoning if the problem statement is self-explanatory.
+- Include only what the receiving agent needs to start. No filler.
 
-## Step 3: Present for Confirmation
+### 3. Present and write
 
-Show the complete draft to the user. Ask:
+Show the draft. Ask: **"Write this, or adjust?"**
 
-> "Draft dispatch for **<target>**. Write this, or adjust?"
-
-Wait for confirmation. If the user wants changes, adjust and re-present.
-
-## Step 4: Write
-
-Write the confirmed dispatch to the resolved target path.
+On confirmation, write to `docs/dispatches/`. Dispatches are committed to the repo — they're visible to any branch that merges dev.
 
 ## Rules
 
-- **Dev only.** This skill runs from the dev branch. Dispatching from a worktree means stale context.
-- **One dispatch per target.** A new dispatch overwrites the previous one. Dispatch is a current assignment, not a queue.
-- **Does not start sessions.** The user opens the worktree terminal separately.
-- **Ephemeral.** DISPATCH.md is consumed by `/handoff` (deleted after acknowledgment). It is not a persistent record — the handoff is.
-- **DISPATCH.md is gitignored.** Never stage or commit it.
+- **Multiple dispatches per target are fine.** Each dispatch is its own file. They accumulate until the receiving agent acts on them.
+- **Dispatches are consumed by `/handoff`** — the handoff skill archives or removes completed dispatches.
+- **Dispatches are committed**, not gitignored. They travel with the repo.
+- **No exploration.** The sonnet subagent drafts from conversation context only — no git log, no file reads, no research. The user knows what they want; write it down fast.
 
 $ARGUMENTS

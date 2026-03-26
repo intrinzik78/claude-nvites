@@ -7,9 +7,17 @@ description: Project orientation. Spawns a subagent to scan project structure, a
 2. User welcomes reasoned pushback and honest disagreement. Say the hard thing, the user needs your full awareness, presence, collaboration, thoughts and reasoning.
 3. Silent compliance is the most dangerous failure mode.
 ---
-**0. Read NEXT.md** — Read `docs/NEXT.md` at `/home/zik/programming/uwz/monorepo/docs/NEXT.md`. Find the section matching the current branch or worktree name (e.g., on branch `server`, find `## server`; on branch `surface-website`, find `## surface-website`; on `dev`, show the `## crosscutting` section). Present only **uncrossed** items from that section under `## Resuming From`. Items with ~~strikethrough~~ are completed — skip them. If on `dev`, present all sections' uncrossed items (the operator sees the full picture). If `docs/NEXT.md` is missing or the matching section is empty/all crossed, report "No pending items for this workstream" and proceed with full orientation.
+**0. Read dispatches** — Check `docs/dispatches/` for files matching the current branch/worktree using these prefixes:
 
-**0.5. Read DISPATCH.md** — If `DISPATCH.md` exists at the repo root or current worktree root, read it and present under `## Dispatched Work` after `## Resuming From`. Include all sections verbatim. If both DISPATCH.md and `docs/NEXT.md` exist, present dispatch first (directed assignment takes priority over runway queue). If the `**Date:**` field is more than 3 days old, flag the header as `## Dispatched Work (STALE DISPATCH)` and note the age. If `DISPATCH.md` is absent, skip this step silently.
+| Prefix | Branch / worktree |
+|--------|-------------------|
+| `DEV_` | dev |
+| `SERVER_` | server |
+| `WEBSITE_` | surface-website |
+| `COMMAND_` | surface-command-center |
+| `TAKO_` | cli-tako |
+
+If matches exist, read them and present under `## Dispatched Work`. Include all sections verbatim. If a dispatch's `**Date:**` field is more than 3 days old, flag it as `(STALE)` and note the age. If no matching dispatches are found, skip this step silently.
 
 **Spawn an Explore subagent** to orient to the project. The subagent should:
 
@@ -27,7 +35,7 @@ description: Project orientation. Spawns a subagent to scan project structure, a
    - If a plan touches types that flow through the build pipeline, verify the pipeline *during planning*, not just at the end.
    - If code is Rust, verify with the review-rs skill.
    - If code is TypeScript or Svelte, verify with review-ts skill.
- Return a concise summary in this order: **Resuming From** (`docs/NEXT.md` uncrossed items for this workstream or "No pending items"), crate layout, principles, open questions, build gates, handoff drift warnings (if any).
+ Return a concise summary in this order: **Dispatched Work** (if any), crate layout, principles, open questions, build gates, handoff drift warnings (if any).
 
 **If drift is flagged on dev**, promote qualifying decisions after orientation: read each flagged handoff's provisional decisions, apply promotion criteria (promote cross-crate, convention, infra, and design-constraining decisions; skip implementation details, UI choices, one-off fixes), append to `docs/DECISIONS.md` with next `DEC-###` ID using the format in DECISIONS.md, and report what was promoted/skipped.
 
@@ -35,7 +43,7 @@ The summary should be short enough to hold in working memory. This is orientatio
 
 **Antipatterns — the subagent summary MUST NOT:**
 - ❌ Exceed 800 words. Target 400–600. If it doesn't fit, cut detail — not sections.
-- ❌ Infer, editorialize, or suggest next actions. Present only what's explicitly in files (NEXT.md, DISPATCH.md, handoffs, DECISIONS.md). Priority judgment is the user's domain, not the agent's.
+- ❌ Infer, editorialize, or suggest next actions. Present only what's explicitly in files (dispatches, handoffs, DECISIONS.md). Priority judgment is the user's domain, not the agent's.
 - ❌ Include raw file listings, full absolute paths, or verbatim file contents.
 - ❌ Scan more than 5 handoffs per domain. Older ones: count + date range only.
 - ❌ Repeat information already in the conversation's CLAUDE.md or MEMORY.md context.

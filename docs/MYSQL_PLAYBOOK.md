@@ -1,6 +1,6 @@
 # MySQL Local Development Playbook
 
-Setup for the UWZ Rust + MySQL + Google Cloud SQL stack. Works in any clone or worktree.
+Setup for the Nvites Rust + MySQL + Google Cloud SQL stack. Works in any clone or worktree.
 
 ---
 
@@ -19,7 +19,7 @@ Run a local MySQL instance pinned to match your Cloud SQL version:
 docker run -d \
   --name mysql-local \
   -e MYSQL_ROOT_PASSWORD=localdev \
-  -e MYSQL_DATABASE=uwz \
+  -e MYSQL_DATABASE=nvites \
   -p 3306:3306 \
   mysql:8.4 \
   --character-set-server=utf8mb4 \
@@ -46,14 +46,14 @@ Create a `.env` in your project root (already gitignored):
 
 ```env
 DB_ENV=local
-DATABASE_URL=mysql://root:localdev@127.0.0.1:3306/uwz
+DATABASE_URL=mysql://root:localdev@127.0.0.1:3306/nvites
 ```
 
 Create a `.env.example` and commit it:
 
 ```env
 DB_ENV=local
-DATABASE_URL=mysql://root:CHANGEME@127.0.0.1:3306/uwz
+DATABASE_URL=mysql://root:CHANGEME@127.0.0.1:3306/nvites
 ```
 
 ### Environment values
@@ -140,14 +140,14 @@ chmod +x cloud-sql-proxy
 ./cloud-sql-proxy --port 3307 PROJECT:REGION:INSTANCE
 
 # Then in another terminal, with staging .env:
-# DATABASE_URL=mysql://user:pass@127.0.0.1:3307/uwz
+# DATABASE_URL=mysql://user:pass@127.0.0.1:3307/nvites
 sqlx migrate run
 ```
 
 ### Run migrations against cloud
 
 ```bash
-DATABASE_URL=mysql://user:pass@127.0.0.1:3307/uwz sqlx migrate run
+DATABASE_URL=mysql://user:pass@127.0.0.1:3307/nvites sqlx migrate run
 ```
 
 ## 6. Daily Workflow
@@ -211,7 +211,7 @@ docker rm -f mysql-local
 docker run -d \
   --name mysql-local \
   -e MYSQL_ROOT_PASSWORD=localdev \
-  -e MYSQL_DATABASE=uwz \
+  -e MYSQL_DATABASE=nvites \
   -p 3306:3306 \
   mysql:8.4 \
   --character-set-server=utf8mb4 \
@@ -222,7 +222,7 @@ docker run -d \
 sqlx migrate run
 
 # Optionally load seed data (generic pattern — this project seeds via migrations):
-# docker exec -i mysql-local mysql -u root -plocaldev uwz < server/scripts/seed_dev_data.sql
+# docker exec -i mysql-local mysql -u root -plocaldev nvites < server/scripts/seed_dev_data.sql
 ```
 
 ## 9. Safeguards

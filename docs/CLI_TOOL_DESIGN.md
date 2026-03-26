@@ -16,7 +16,7 @@ The CLI owns no business logic. It translates terminal input into SDK calls and 
 
 | Layer | Role | Implementation |
 |-------|------|----------------|
-| **Model** | SDK `Client` — handles API calls | `uwz_rust_sdk::types::Client` |
+| **Model** | SDK `Client` — handles API calls | `nvites_rust_sdk::types::Client` |
 | **View** | Terminal I/O — prompts and output | Zero-sized `View` struct |
 | **Controller** | Orchestrator — lifecycle and dispatch | `Controller` with builder pattern |
 

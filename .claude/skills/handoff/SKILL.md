@@ -25,18 +25,29 @@ Check the current branch:
 
 Filename: `YYYY-MM-DD-<brief-slug>.md`
 
-## Step 2.5: Acknowledge dispatch
+## Step 2.5: Acknowledge dispatches
 
-If `DISPATCH.md` exists at the repo root or current worktree root, read it. You will add a `## Dispatch Acknowledgment` section to the handoff in Step 3, placed immediately after `## Completed This Session`:
+Check `docs/dispatches/` for files matching the current branch/worktree using these prefixes:
+
+| Prefix | Branch / worktree |
+|--------|-------------------|
+| `DEV_` | dev |
+| `SERVER_` | server |
+| `WEBSITE_` | surface-website |
+| `COMMAND_` | surface-command-center |
+| `TAKO_` | cli-tako |
+
+For each matching dispatch, add a `## Dispatch Acknowledgment` section to the handoff in Step 3, placed immediately after `## Completed This Session`:
 
 ```markdown
 ## Dispatch Acknowledgment
-**Dispatch:** <title from DISPATCH.md>
+**Dispatch:** <title from dispatch file>
+**File:** <filename>
 **Status:** completed | partial | blocked | deferred
 **Notes:** <if not completed, what remains and why>
 ```
 
-After writing the handoff in Step 4 (commit), delete the `DISPATCH.md` file. It has been consumed. If `DISPATCH.md` does not exist, skip this step silently.
+After writing the handoff in Step 4 (commit), delete completed dispatch files from `docs/dispatches/`. Leave partial/blocked/deferred dispatches in place. If no matching dispatches exist, skip this step silently.
 
 ## Step 3: Write the handoff document
 

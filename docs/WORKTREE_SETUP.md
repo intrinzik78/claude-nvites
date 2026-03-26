@@ -4,7 +4,7 @@ This project uses git worktrees to isolate work on different surfaces and the se
 
 ## Convention
 
-Worktrees live at `../worktrees/` relative to the monorepo root. Each worktree tracks a named branch that maps to a `handoffs/` subdirectory and a `NEXT.md` section.
+Worktrees live at `../worktrees/` relative to the monorepo root. Each worktree tracks a named branch that maps to a `handoffs/` subdirectory and a dispatch prefix in `docs/dispatches/`.
 
 | Branch | Path | Purpose |
 |--------|------|---------|
