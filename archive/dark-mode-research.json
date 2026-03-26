@@ -1,0 +1,91 @@
+{
+  "archived": "2026-02-26",
+  "reason": "Validates existing dark-first decision in /frontend-website skill. No actionable changes identified. See red team notes in conversation.",
+  "topic": "Website Design: Light vs Dark Mode — Current Thinking & Industry Leaders",
+  "date_compiled": "2026-02-26",
+  "industry_leaders": {
+    "apple": {
+      "approach": "Context-switching — no single committed mode",
+      "light_use_cases": ["Product pages (iPhone, MacBook)", "Clarity-driven content", "Trust and openness messaging"],
+      "dark_use_cases": ["Hardware showcases (AirPods Pro)", "3D product renders", "Cinematic scroll-based storytelling"],
+      "key_insight": "Uses light and dark within the same page as a scroll-based narrative tool"
+    },
+    "nike": {
+      "approach": "Dark-friendly brand language that works across both modes",
+      "palette": "Vivid red + stark black — inherently dark-mode compatible",
+      "key_insight": "Design system is mode-agnostic; brand identity is consistent regardless of mode",
+      "result": "45% increase in user interactions with dark-forward campaign redesign"
+    },
+    "dark_first_brands": ["Spotify", "Netflix", "Steam", "GitHub", "Discord"],
+    "light_first_brands": ["Google", "LinkedIn", "Wikipedia", "Cleveland Clinic"]
+  },
+  "key_decision_factors": {
+    "brand_and_industry": {
+      "dark_signals": ["premium", "technical", "modern", "bold", "futuristic"],
+      "light_signals": ["trust", "clarity", "accessibility", "openness", "credibility"],
+      "dark_suited_industries": ["technology", "gaming", "entertainment", "creative agencies", "dev tools"],
+      "light_suited_industries": ["healthcare", "finance", "legal", "education", "corporate services"]
+    },
+    "content_type": {
+      "prefer_light": "Text-heavy, long-form reading, documentation, editorial",
+      "prefer_dark": "Image-heavy, video-heavy, product showcases, visual portfolios"
+    },
+    "audience_and_devices": {
+      "mobile_users_preferring_dark": "82%",
+      "battery_savings_on_oled_screens": "up to 47%",
+      "recommendation": "Dark-first if audience skews mobile, gaming, dev tools, or creative software"
+    },
+    "accessibility": {
+      "common_dark_mode_pitfalls": ["insufficient contrast", "color-dependent cues", "visual artifacts"],
+      "wcag_required_contrast_ratio": "4.5:1",
+      "at_risk_groups": ["low vision users", "dyslexic users", "older audiences"],
+      "recommendation": "Test both modes actively — do not rely on automated checkers alone"
+    },
+    "engagement_data": {
+      "extra_time_spent_by_dark_mode_users": "~1 hour longer per session",
+      "session_satisfaction": "Improved for dark mode users, especially evening browsers",
+      "caveat": "Some data reflects self-selection bias from tech-savvy users"
+    },
+    "development_cost": {
+      "additional_dev_cost": "up to 40% increase",
+      "extra_work_per_screen": "4–6 hours",
+      "assessment": "Worth it given engagement uplift; plan for it upfront"
+    }
+  },
+  "emerging_consensus": {
+    "status": "Dark mode transitioning from trend to expected standard",
+    "best_practice_2025_2026": "Support both modes with system-preference detection as baseline; choose default based on brand category",
+    "implementation_tiers": {
+      "minimum": "CSS prefers-color-scheme auto-detection",
+      "standard": "User toggle + remembered preference across devices",
+      "advanced": "Mode as storytelling tool — intentional use of dark for drama, light for clarity within same experience"
+    },
+    "leading_edge": "Brand systems fluid enough to use both intentionally, with smooth context-driven transitions"
+  },
+  "common_mistakes": [
+    "Simply inverting colors without redesigning for each context",
+    "Mid-grey or muted text on dark backgrounds (legibility killer)",
+    "Problematic color combos: blue-on-black, dark green on navy",
+    "Only testing in one mode",
+    "Following the trend without considering industry/audience fit",
+    "Not accounting for animations and hover states that behave differently in dark mode"
+  ],
+  "design_trends_alongside_mode": {
+    "motion_and_animation": "Scroll-triggered animations, microinteractions — Apple, Nike, Airbnb leading",
+    "typography": "Expressive, oversized, custom fonts taking center stage",
+    "color_2025_2026": "Bright saturated palettes returning; neon gradients; earthy tones for sustainability brands",
+    "3d_and_ar": "Mainstream — Nike (shoe try-on), Apple (product showcases), IKEA",
+    "personalization": "Nike personalizes homepage by location/browsing history",
+    "maximalism_vs_minimalism": "Both coexisting — Spotify/Liquid Death lean maximalist; Apple stays minimal"
+  },
+  "sources_consulted": [
+    "webwave.me — Dark Mode Design Trends 2025",
+    "altersquare.medium.com — Dark Mode Design for Startups 2025",
+    "figma.com — Web Design Trends 2026",
+    "theedigital.com — Top Web Design Trends",
+    "loungelizard.com — Web Design Color Trends 2026",
+    "printmag.com — Brand & Design Predictions 2025",
+    "thewebfactory.us — 30 Best Web Design Trends 2025",
+    "instrument.com — Nike Digital Design System"
+  ]
+}

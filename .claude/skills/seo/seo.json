@@ -1,0 +1,431 @@
+{
+  "$schema": "Site-specific SEO configuration. The SEO skill reads this file — it never hardcodes what belongs here. Update when routes change, business details change, or audit decisions are made.",
+
+  "site": {
+    "name": "Urban War Zone",
+    "baseUrl": "https://urbanwarzonepaintball.com",
+    "locale": "en_US",
+    "trailingSlash": "never"
+  },
+
+  "organization": {
+    "name": "Urban War Zone Paintball",
+    "legalName": "TODO: verify legal entity name",
+    "url": "https://urbanwarzonepaintball.com",
+    "logo": "TODO: absolute URL — new site logo asset not yet finalized",
+    "telephone": "+1-281-892-1148",
+    "email": "info@urbanwarzonepaintball.com",
+    "founder": "Joshua Briggs",
+    "foundingDate": "2006",
+    "address": {
+      "streetAddress": "2315 Telephone Road",
+      "addressLocality": "Houston",
+      "addressRegion": "TX",
+      "postalCode": "77023",
+      "addressCountry": "US"
+    },
+    "geo": {
+      "latitude": "29.72098",
+      "longitude": "-95.32177"
+    },
+    "openingHours": [
+      "Mo-Th 13:00-20:00",
+      "Fr 12:00-21:00",
+      "Sa 10:00-21:00",
+      "Su 10:00-18:00"
+    ],
+    "priceRange": "$$",
+    "businessType": "SportsActivityLocation",
+    "aggregateRating": {
+      "ratingValue": "4.7",
+      "reviewCount": "864",
+      "notes": "From Google Business profile — verify current count before launch"
+    },
+    "sameAs": [
+      "https://g.page/uwzpaintball",
+      "https://www.facebook.com/uwzpaintball/",
+      "https://www.instagram.com/uwzpaintball/",
+      "https://www.youtube.com/@uwzpaintball/",
+      "https://twitter.com/uwzpaintball"
+    ]
+  },
+
+  "defaults": {
+    "titleTemplate": "%s | UWZ Paintball",
+    "metaDescription": "Urban War Zone — Houston's only paintball field inside the 610 loop. Group packages, birthday parties, corporate events, and unlimited private play. Book online today.",
+    "ogImage": "TODO: absolute URL to default OG image (1200x630)",
+    "ogSiteName": "Urban War Zone Paintball",
+    "twitterCard": "summary_large_image",
+    "themeColor": "#00a85e"
+  },
+
+  "routes": [
+    {
+      "path": "/",
+      "index": true,
+      "contentType": "marketing",
+      "primaryKeyword": "paintball Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["LocalBusiness", "Organization"],
+      "priority": 1.0,
+      "changefreq": "weekly",
+      "title": "Paintball in Houston TX",
+      "description": "Houston's only paintball field inside the 610 loop. Unlimited private play, group packages from $24.95/person, birthday parties, and corporate events. Book online."
+    },
+    {
+      "path": "/prices",
+      "index": true,
+      "contentType": "catalog",
+      "primaryKeyword": "paintball prices Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["Product", "BreadcrumbList"],
+      "priority": 0.9,
+      "changefreq": "weekly",
+      "title": "Paintball Prices & Packages",
+      "description": "Paintball packages for every group size — individuals from $34.95, groups of 10+ from $29.95, and 30+ from $24.95 per person. All equipment included at UWZ Paintball Houston."
+    },
+    {
+      "path": "/prices/individual",
+      "index": true,
+      "contentType": "catalog",
+      "primaryKeyword": "paintball prices Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["Product", "BreadcrumbList"],
+      "priority": 0.85,
+      "changefreq": "weekly",
+      "title": "Individual Paintball Packages from $34.95",
+      "description": "Individual and small group paintball packages from $34.95/person. Compare Basic, Deluxe, and Elite at UWZ Paintball Houston."
+    },
+    {
+      "path": "/prices/groups",
+      "index": true,
+      "contentType": "catalog",
+      "primaryKeyword": "group paintball pricing Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["Product", "BreadcrumbList"],
+      "priority": 0.85,
+      "changefreq": "weekly",
+      "title": "Group Paintball Packages from $29.95",
+      "description": "Group paintball packages for 10-29 guests from $29.95/person. Compare Basic, Deluxe, and Elite at UWZ Paintball Houston."
+    },
+    {
+      "path": "/prices/large-groups",
+      "index": true,
+      "contentType": "catalog",
+      "primaryKeyword": "large group paintball Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["Product", "BreadcrumbList"],
+      "priority": 0.85,
+      "changefreq": "weekly",
+      "title": "Large Group Paintball Packages from $24.95",
+      "description": "Large group paintball packages for 30+ guests from $24.95/person. Our best per-person rates at UWZ Paintball Houston."
+    },
+    {
+      "path": "/book",
+      "index": true,
+      "contentType": "transactional",
+      "primaryKeyword": "book paintball Houston",
+      "keywordIntent": "transactional",
+      "structuredDataTypes": ["Product", "BreadcrumbList"],
+      "priority": 0.8,
+      "changefreq": "daily",
+      "title": "Book Paintball in Houston | Prices from $24.95",
+      "description": "Reserve your paintball session at Urban War Zone Houston. Packages from $24.95/person. Choose your package, pick your date, and lock in unlimited private play."
+    },
+    {
+      "path": "/shop",
+      "index": true,
+      "contentType": "catalog",
+      "primaryKeyword": "paintball gear Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["Product", "BreadcrumbList"],
+      "priority": 0.7,
+      "changefreq": "weekly",
+      "title": "Paintball Gear & Supplies",
+      "description": "Paintball gear, extra paintballs, smoke grenades, and marker upgrades available at Urban War Zone Houston."
+    },
+    {
+      "path": "/pictures",
+      "index": true,
+      "contentType": "media",
+      "primaryKeyword": "paintball photos Houston",
+      "keywordIntent": "informational",
+      "structuredDataTypes": ["ImageGallery", "BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "weekly",
+      "title": "Pictures",
+      "description": "Action shots from Urban War Zone paintball sessions. Browse albums from recent events, birthday parties, and corporate outings."
+    },
+    {
+      "path": "/pictures/[id]",
+      "index": true,
+      "contentType": "media",
+      "primaryKeyword": null,
+      "keywordIntent": "informational",
+      "structuredDataTypes": ["ImageGallery", "BreadcrumbList"],
+      "priority": 0.5,
+      "changefreq": "monthly",
+      "notes": "Dynamic route — sitemap must enumerate actual album IDs. Title/description generated from album data."
+    },
+    {
+      "path": "/birthday",
+      "index": true,
+      "contentType": "marketing",
+      "primaryKeyword": "paintball birthday party Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["Product", "BreadcrumbList"],
+      "priority": 0.8,
+      "changefreq": "weekly"
+    },
+    {
+      "path": "/team-building",
+      "index": true,
+      "contentType": "marketing",
+      "primaryKeyword": "team building paintball Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.8,
+      "changefreq": "weekly"
+    },
+    {
+      "path": "/about",
+      "index": true,
+      "contentType": "informational",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/contact",
+      "index": true,
+      "contentType": "informational",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/hours",
+      "index": true,
+      "contentType": "informational",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/faq",
+      "index": true,
+      "contentType": "informational",
+      "primaryKeyword": "paintball FAQ Houston",
+      "keywordIntent": "informational",
+      "structuredDataTypes": ["FAQPage", "BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/waiver",
+      "index": true,
+      "contentType": "informational",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/what-to-expect",
+      "index": true,
+      "contentType": "informational",
+      "primaryKeyword": "what to expect paintball",
+      "keywordIntent": "informational",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/kids",
+      "index": true,
+      "contentType": "marketing",
+      "primaryKeyword": "low impact paintball kids Houston",
+      "keywordIntent": "commercial",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.7,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/directions",
+      "index": true,
+      "contentType": "informational",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.5,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/game-types",
+      "index": true,
+      "contentType": "informational",
+      "primaryKeyword": "paintball game types",
+      "keywordIntent": "informational",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.6,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/queue",
+      "index": true,
+      "contentType": "transactional",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.5,
+      "changefreq": "weekly"
+    },
+    {
+      "path": "/alt",
+      "index": false,
+      "contentType": "marketing",
+      "structuredDataTypes": [],
+      "notes": "A/B test variant of home page — noindex in code"
+    },
+    {
+      "path": "/queue/confirm",
+      "index": false,
+      "contentType": "transactional",
+      "structuredDataTypes": [],
+      "notes": "Post-queue confirmation — noindex in code"
+    },
+    {
+      "path": "/pictures/[id]/[photoId]",
+      "index": true,
+      "contentType": "media",
+      "structuredDataTypes": ["BreadcrumbList"],
+      "priority": 0.4,
+      "changefreq": "monthly",
+      "notes": "Dynamic route — individual photo detail. Title/description generated from photo + album data."
+    },
+    {
+      "path": "/login",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": [],
+      "title": "Login"
+    },
+    {
+      "path": "/register",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": [],
+      "title": "Create Account"
+    },
+    {
+      "path": "/portal",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": [],
+      "notes": "All /portal/* children inherit noindex from portal layout"
+    },
+    {
+      "path": "/portal/bookings",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": []
+    },
+    {
+      "path": "/portal/orders",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": []
+    },
+    {
+      "path": "/portal/waivers",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": []
+    },
+    {
+      "path": "/portal/profile",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": []
+    },
+    {
+      "path": "/portal/bookings/new",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": []
+    },
+    {
+      "path": "/portal/logout",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": []
+    },
+    {
+      "path": "/portal/waivers/[uuid]",
+      "index": false,
+      "contentType": "auth",
+      "structuredDataTypes": [],
+      "notes": "Waiver detail — inherits noindex from portal layout"
+    },
+    {
+      "path": "/ingest/[...path]",
+      "index": false,
+      "contentType": "internal",
+      "structuredDataTypes": [],
+      "notes": "Internal ingest proxy — not a page, no crawl surface"
+    },
+    {
+      "path": "/book/availability",
+      "index": false,
+      "contentType": "transactional",
+      "structuredDataTypes": [],
+      "notes": "Booking flow sub-step — not a standalone landing page"
+    },
+    {
+      "path": "/book/preview",
+      "index": false,
+      "contentType": "transactional",
+      "structuredDataTypes": [],
+      "notes": "Booking flow sub-step — not a standalone landing page"
+    },
+    {
+      "path": "/waiver/api",
+      "index": false,
+      "contentType": "internal",
+      "structuredDataTypes": [],
+      "notes": "Waiver API endpoint — not a page"
+    }
+  ],
+
+  "redirects": {
+    "notes": "Old site has 60+ 301 redirects from WordPress-era URLs. These must be preserved in the new site to maintain link equity. Key redirects below — full list in old-site/src/lib/redirects.js",
+    "critical": [
+      { "from": "/prices.shtml", "to": "/prices" },
+      { "from": "/reservations.shtml", "to": "/book" },
+      { "from": "/birthday.shtml", "to": "/birthday" },
+      { "from": "/corporate.shtml", "to": "/team-building" },
+      { "from": "/about/", "to": "/about" },
+      { "from": "/hours.shtml", "to": "/hours" },
+      { "from": "/contact.shtml", "to": "/contact" },
+      { "from": "/rental-prices/", "to": "/prices" },
+      { "from": "/paintball-reservations/", "to": "/book" },
+      { "from": "/paintball-birthday-party/", "to": "/birthday" },
+      { "from": "/corporate-team-building-games/", "to": "/team-building" }
+    ],
+    "status": "Implemented in hooks.server.ts via redirects.ts — all TEMP redirects resolved"
+  },
+
+  "crawl": {
+    "sitemapPath": "/sitemap.xml",
+    "robotsTxtPath": "/robots.txt",
+    "blockedPrefixes": ["/portal", "/api"],
+    "noindexLayouts": ["(auth)"]
+  },
+
+  "framework": {
+    "name": "sveltekit",
+    "metaStrategy": "svelte:head",
+    "prerenderStrategy": "selective",
+    "adapterRef": "sveltekit.md"
+  },
+
+  "audit": {
+    "lastRun": "2026-03-07",
+    "snapshot": null
+  }
+}

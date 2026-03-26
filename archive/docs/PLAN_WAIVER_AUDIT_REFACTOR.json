@@ -1,0 +1,67 @@
+{
+  "title": "Waiver audit trail refactor: batch attestation → discrete event capture",
+  "problem": {
+    "summary": "create_tx() inserts 6 audit subtable rows (create, view, consent, confirm, confirm_success, sign) in a single transaction with identical timestamps. The 7-subtable schema implies temporal granularity that doesn't exist. The audit 'trail' is a single batch record, not a sequence of observed events.",
+    "why_it_matters": "In a dispute, the audit trail should prove the signer actually performed each step. Currently it proves only that the server received a POST with consent_given=true and details_confirmed=true. A single-table batch record would be equally defensible and more honest. The subtable structure only earns its complexity if events are captured when they actually occur."
+  },
+  "target_architecture": {
+    "principle": "Each audit event is recorded by a discrete API call at the moment it occurs. The surface drives the flow. The server records what it observes, not what it's told happened.",
+    "flow": [
+      { "step": 1, "surface": "User lands on waiver page", "api": "GET /v1/waivers/document/current → GET /v1/waivers/document/{uuid}", "audit": "None (public, no auth context). Document content_hash returned to surface.", "exists": true },
+      { "step": 2, "surface": "User authenticates (if not already)", "api": "POST /v1/sessions", "audit": "None (existing auth flow)", "exists": true },
+      { "step": 3, "surface": "User begins waiver process", "api": "POST /v1/portal/waivers/begin", "audit": "waiver_audit_create + waiver_audit_view (server knows: authenticated user retrieved document)", "exists": false, "note": "Creates waiver row in 'draft' state. Returns waiver UUID. Requires document_uuid + participant info but NOT signature. Records the view event with real timestamp." },
+      { "step": 4, "surface": "User checks ESIGN consent checkbox", "api": "POST /v1/portal/waivers/{uuid}/consent", "audit": "waiver_audit_consent (real timestamp, real IP)", "exists": false },
+      { "step": 5, "surface": "User confirms details are correct", "api": "POST /v1/portal/waivers/{uuid}/confirm", "audit": "waiver_audit_confirm + waiver_audit_confirm_success", "exists": false },
+      { "step": 6, "surface": "User types name and clicks Sign", "api": "POST /v1/portal/waivers/{uuid}/sign", "audit": "waiver_audit_sign (explicit Rust timestamp). Computes signed_document_hash. Waiver transitions from draft to pending.", "exists": false, "note": "Only accepts if consent + confirm events exist for this waiver. Revalidates document content_hash inside TX." },
+      { "step": 7, "surface": "Surface displays signed record on 200", "api": "GET /v1/portal/waivers/{uuid}", "audit": "waiver_audit_view (retrieval-time, real timestamp)", "exists": true },
+      { "step": 8, "surface": "Staff reviews and accepts", "api": "POST /v1/bookings/{uuid}/waivers/accept", "audit": "waiver_audit_accept (existing flow, already discrete)", "exists": true }
+    ]
+  },
+  "what_changes": {
+    "new_endpoints": [
+      "POST /v1/portal/waivers/begin — creates draft waiver + view audit",
+      "POST /v1/portal/waivers/{uuid}/consent — records consent event",
+      "POST /v1/portal/waivers/{uuid}/confirm — records confirmation event",
+      "POST /v1/portal/waivers/{uuid}/sign — applies signature, computes hash, finalizes"
+    ],
+    "removed_endpoint": "POST /v1/portal/waivers (the current single-shot create+sign)",
+    "modified": [
+      "create_tx() splits into begin_tx() + sign_tx()",
+      "WaiverInsertParams splits: participant info at begin, signature at sign",
+      "CreateWaiverBody/CreateChildWaiverBody contract types change",
+      "waiver table needs a draft state (waiver_status_id: Draft=0, Pending=1, Accepted=2 — requires migration + enum rebase)",
+      "Route collection: 4 new portal routes, 1 removed",
+      "Sentinel updates for any public route changes"
+    ],
+    "unchanged": [
+      "GET /v1/waivers/document/current and GET /v1/waivers/document/{uuid} (shipped this session, correct as-is)",
+      "GET /v1/portal/waivers/{uuid} with verify_signed_document() (shipped this session, correct as-is)",
+      "compute_document_hash() and compute_signed_document_hash() (correct as-is)",
+      "Staff endpoints (accept, paper, audit trail)",
+      "Confirmation email flow",
+      "waiver_audit subtable schema (the tables are correct, the population timing was wrong)"
+    ]
+  },
+  "constraints": {
+    "ordering_enforcement": "sign_tx() must verify that consent + confirm audit events exist for the waiver before accepting the signature. A sign without prior consent is rejected.",
+    "draft_timeout": "Draft waivers that never reach sign should be cleaned up. Consider expires_at or a background sweeper.",
+    "child_waivers": "The current POST /v1/portal/waivers/child follows the same pattern. The begin endpoint needs an is_minor flag that determines whether guardian fields are required at begin vs sign.",
+    "idempotency": "Consent and confirm endpoints should be idempotent — calling consent twice on the same waiver should not create duplicate audit rows.",
+    "content_hash_binding": "The document content_hash should be captured at begin time (when the user is viewing the document) and re-validated at sign time. If the document changed between begin and sign, reject."
+  },
+  "esign_alignment": {
+    "summary": "ESIGN does not prescribe audit architecture. It requires demonstrable intent (§7001(a)), affirmative consent (§7001(c)), record integrity (§7001(d)), and record access (§7001(c)(1)(A)(v)). Discrete event capture satisfies these requirements more honestly than batch attestation. Neither approach is legally required over the other — but discrete capture produces genuinely distinct timestamps that better serve dispute resolution.",
+    "view_audit_note": "View audit logging is operational practice, not ESIGN-mandated. But the creation-time view event now has real value: it proves the authenticated user retrieved the document at a specific time before signing, not just that the server inserted a row at sign time."
+  },
+  "reference_files": {
+    "current_create_tx": "server/api/src/types/waivers/waiver.rs — create_tx() (to be split)",
+    "audit_schema": "docs/waiver-esign-map.json — tables section",
+    "esign_guide": "docs/ESIGN_GUIDE.md — compliance inventory",
+    "handler_adult": "server/api/src/api/portal/portal_waivers_post.rs",
+    "handler_child": "server/api/src/api/portal/portal_waivers_child_post.rs",
+    "contracts": "api-contracts/src/waivers.rs — CreateWaiverBody, CreateChildWaiverBody",
+    "paths": "api-contracts/src/paths/waivers.rs",
+    "route_collection": "server/api/src/types/route_collection.rs — portal() method",
+    "style_guide": "docs/RUST_STYLE_GUIDE.md"
+  }
+}

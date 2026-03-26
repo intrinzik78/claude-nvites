@@ -1,0 +1,443 @@
+{
+  "meta": {
+    "description": "Generalized workflow engine. Any domain entity can spawn a workflow instance. The engine knows steps, conditions, and advancement — never domain semantics.",
+    "principle": "The engine doesn't know what a 'waiver' is. It knows 'context field waiver_count is a number that can be compared.' All domain knowledge lives in workflow definitions and the systems that populate context."
+  },
+
+  "workflow_definition": {
+    "description": "A versioned, reusable pipeline template. Defines ordered steps, expected context shape, and independent flags. Owned by whatever domain concept needs a pipeline (product, department, asset type).",
+    "fields": {
+      "id": "string",
+      "name": "string (e.g. 'Standard Paintball Flow', 'Marker Maintenance')",
+      "owner_type": "string (e.g. 'product', 'asset_type', 'department' — opaque to the engine)",
+      "owner_id": "string",
+      "version": "integer (incremented on each publish)",
+      "status": "draft | published | archived",
+      "published_at": "timestamp | null",
+      "context_schema": "object — declares the data shape this workflow expects at runtime",
+      "steps": "ordered array of step definitions",
+      "flags": "array of flag definitions"
+    },
+    "versioning": {
+      "description": "Workflow definitions are versioned to prevent drift between definitions and running instances.",
+      "rules": [
+        "Drafts are freely editable. Not available for instance creation.",
+        "Publishing creates an immutable version for breaking changes (steps, order, context_schema, conditions).",
+        "Non-breaking edits allowed on published versions: label text, phase names, UI hints, flag labels.",
+        "Archiving a version prevents new instances but does not affect running instances pinned to it.",
+        "New instances default to the latest published version."
+      ],
+      "breaking_vs_non_breaking": {
+        "breaking": "Adding/removing/reordering steps, changing step types, modifying conditions, changing context_schema fields",
+        "non_breaking": "Editing labels, phase names, flag labels, step descriptions, UI hints"
+      }
+    },
+    "condition_validation": {
+      "description": "All gate and auto conditions are validated at publish time, not runtime.",
+      "rules": [
+        "On publish, every condition expression is parsed and validated against the definition's context_schema.",
+        "A condition referencing a field not in context_schema is a publish error.",
+        "A condition comparing incompatible types (e.g. number == boolean) is a publish error.",
+        "The parsed AST is stored alongside the condition string for runtime evaluation. No string parsing at execution time."
+      ]
+    },
+
+    "context_schema": {
+      "description": "Declares what runtime data this workflow expects. The engine validates instance context against this schema. Gate and auto conditions can only reference declared fields.",
+      "field_definition": {
+        "key": "string (e.g. 'headcount', 'pressure_psi')",
+        "type": "number | boolean | string",
+        "source": "input | computed | external",
+        "description": "string (human-readable, for workflow builder UI)"
+      },
+      "notes": "The engine treats context as a typed bag. It doesn't interpret values — it only evaluates conditions against them. Domain systems are responsible for populating and updating context fields on the workflow instance."
+    },
+
+    "step_definition": {
+      "fields": {
+        "step_id": "string (stable identity — never changes even if step is reordered)",
+        "position": "number (display order only — not used for tracking)",
+        "label": "string (human-readable)",
+        "type": "manual | gate | auto",
+        "phase": "string (UI grouping hint — opaque to engine)",
+        "config": "type-specific configuration (see step_types)",
+        "optional": "boolean (default false — if true, can be skipped by operator)"
+      },
+      "identity_rules": [
+        "step_id is the stable identity. Instances track current_step_id, not position.",
+        "position is for display ordering only. Reordering steps changes positions but not step_ids.",
+        "step_id is assigned at creation and never reused within a workflow definition.",
+        "Renaming a step preserves its step_id. Moving a step changes its position but not its step_id."
+      ]
+    },
+
+    "flag_definition": {
+      "fields": {
+        "flag_key": "string",
+        "label": "string (human-readable)",
+        "default": "boolean"
+      },
+      "notes": "Flags are independent toggles. Not part of linear step progression. Can be set at any point during instance execution. Shown as indicators in the UI."
+    },
+
+    "step_types": {
+      "manual": {
+        "description": "Operator commands advancement. No conditions evaluated. 'This is done, move on.'",
+        "config": {},
+        "ui_hint": "Advance button"
+      },
+      "gate": {
+        "description": "Operator commands advancement. Engine evaluates condition against instance context. Blocks if condition is false.",
+        "config": {
+          "condition": "string (expression referencing context_schema fields)",
+          "condition_ast": "object (parsed at publish time, used at runtime)",
+          "message": "string (shown to operator when blocked, supports {field} interpolation)"
+        },
+        "ui_hint": "Advance button, red block indicator when condition fails"
+      },
+      "auto": {
+        "description": "Engine monitors trigger. Advances automatically when met. No operator action needed.",
+        "config": {
+          "trigger": "condition | duration",
+          "condition": "string (expression, if trigger=condition)",
+          "condition_ast": "object (parsed at publish time, if trigger=condition)",
+          "duration_minutes": "number (if trigger=duration)",
+          "message": "string (shown when auto-advanced)"
+        },
+        "ui_hint": "Timer or progress indicator, no advance button"
+      }
+    }
+  },
+
+  "workflow_instance": {
+    "description": "A single execution of a workflow definition version. Created by a domain entity, carries runtime context, tracks position in pipeline by step_id. The engine operates on instances — it never touches the domain entity directly.",
+    "fields": {
+      "id": "string",
+      "workflow_id": "string (which definition this runs)",
+      "workflow_version": "integer (pinned to the version that was published when instance was created)",
+      "current_step_id": "string (step_id of current position — stable across reorders)",
+      "current_step_position": "number (derived from definition for display — not authoritative)",
+      "context": "object (runtime data bag, validated against workflow's context_schema)",
+      "flags": "object (key-value pairs from workflow flag definitions, initialized to defaults)",
+      "status": "active | paused | completed | cancelled | split",
+      "entered_step_at": "timestamp (when instance entered current step)",
+      "due_at": "timestamp | null (for auto-duration steps: entered_step_at + duration_minutes)",
+      "remaining_seconds": "number | null (set on pause for duration steps, used to recompute due_at on resume)",
+      "created_at": "timestamp",
+      "completed_at": "timestamp | null",
+      "created_by": "string (operator or system that spawned the instance)",
+      "split_from": "string | null (instance_id if this was split from another)"
+    },
+    "status_semantics": {
+      "active": "Running through the pipeline. Advancement permitted. Auto-monitor watches this instance.",
+      "paused": "Temporarily halted. No advancement. Auto-monitor ignores. Duration timers frozen (remaining_seconds preserved).",
+      "completed": "Reached final step. Terminal. Immutable.",
+      "cancelled": "Terminated before completion. Terminal. Used for no-shows, operator corrections, abandoned workflows.",
+      "split": "Original instance after a split operation. Terminal. Children tracked via split_from."
+    },
+    "notes": "The instance does not know what created it. A check-in group holds a workflow_instance_id. A maintenance ticket holds a workflow_instance_id. The engine doesn't care — it sees instances."
+  },
+
+  "advancement_engine": {
+    "description": "Stateless logic that evaluates step type against instance context and determines whether advancement is permitted.",
+    "operations": {
+      "advance": {
+        "input": "instance_id, epoch (from parent entity)",
+        "preconditions": ["Instance status must be 'active'", "Parent entity must not be locked", "Epoch must match"],
+        "behavior": {
+          "manual": "Advance to next step by step_id. Update current_step_id, current_step_position, entered_step_at. If next step is auto-duration, compute and set due_at.",
+          "gate": "Evaluate condition_ast against instance context. If true, advance (same as manual). If false, return block message with interpolated context values.",
+          "auto": "Reject — auto steps are not operator-advanceable. Engine monitors these independently."
+        },
+        "on_last_step": "Set instance status to 'completed', set completed_at."
+      },
+      "skip": {
+        "input": "instance_id, step_id, epoch",
+        "preconditions": ["Instance status must be 'active'", "Step must have optional == true", "Step type must not be 'gate'"],
+        "behavior": "Marks step as skipped, advances to next step_id. Updates entered_step_at."
+      },
+      "set_position": {
+        "input": "instance_id, step_id, epoch",
+        "preconditions": ["Instance status must be 'active'"],
+        "behavior": "Operator override. Sets current_step_id to any step. Updates entered_step_at. If target is auto-duration, computes due_at from now. Used for late arrivals, corrections, split groups.",
+        "min_role": "operator"
+      },
+      "toggle_flag": {
+        "input": "instance_id, flag_key, epoch",
+        "behavior": "Toggle flag value. Not part of advancement. Independent of step position."
+      },
+      "update_context": {
+        "input": "instance_id, partial context object, epoch",
+        "behavior": "Merge fields into instance context. Validates against context_schema. Triggers re-evaluation of any auto-step conditions if instance is active and on an auto-condition step.",
+        "notes": "This is how domain systems feed data into the engine. A waiver service calls update_context({ waiver_count: 12 }). The engine doesn't know what a waiver is."
+      },
+      "pause": {
+        "input": "instance_id, epoch",
+        "preconditions": ["Instance status must be 'active'"],
+        "behavior": "Set status to 'paused'. If on auto-duration step, compute remaining_seconds from due_at - now, clear due_at. Auto-monitor stops watching."
+      },
+      "resume": {
+        "input": "instance_id, epoch",
+        "preconditions": ["Instance status must be 'paused'"],
+        "behavior": "Set status to 'active'. If on auto-duration step, recompute due_at = now + remaining_seconds, clear remaining_seconds. Auto-monitor resumes watching."
+      },
+      "cancel": {
+        "input": "instance_id, epoch, reason (optional string)",
+        "preconditions": ["Instance status must be 'active' or 'paused'"],
+        "behavior": "Set status to 'cancelled'. Set completed_at. Terminal. Used for no-shows, abandoned workflows, operator corrections.",
+        "min_role": "operator"
+      }
+    },
+    "auto_monitoring": {
+      "description": "Background process that watches active instances on auto steps.",
+      "duration_trigger": {
+        "mechanism": "Poll instances where status = 'active' and due_at is not null and due_at <= now.",
+        "on_trigger": "Auto-advance to next step. Update current_step_id, entered_step_at. If next step is also auto-duration, compute new due_at.",
+        "resilience": "due_at is persisted. Server restart does not lose timers. Poll picks up where it left off."
+      },
+      "condition_trigger": {
+        "mechanism": "Re-evaluated whenever update_context is called on an instance that is active and on an auto-condition step.",
+        "on_trigger": "If condition_ast evaluates to true, auto-advance to next step."
+      }
+    }
+  },
+
+  "concurrency": {
+    "description": "The workflow engine does not implement its own concurrency control. It inherits concurrency from the parent entity that owns the workflow instance.",
+    "mechanism": "See concurrency.json. Parent entities (bookings, maintenance tickets, rental orders) provide epoch-based optimistic locking and pessimistic locks for destructive operations.",
+    "contract": {
+      "all_mutating_operations": "Require epoch from the parent entity. Server checks epoch match and lock status before processing.",
+      "epoch_increment": "Every workflow mutation (advance, skip, flag toggle, context update, pause, resume, cancel, split) increments the parent entity's epoch.",
+      "lock_respect": "If parent entity is locked, all workflow mutations are rejected with lock holder info."
+    },
+    "why_not_instance_level": "Epoch lives on the parent, not the instance. A waiver submission on one child group increments the parent epoch, causing an operator advancing a sibling group to refresh. This catches cross-instance conflicts within the same parent — broader protection than instance-level versioning.",
+    "generalization": "Any domain entity that spawns workflow instances must implement the epoch/lock pattern. The workflow engine assumes it exists."
+  },
+
+  "split_mechanics": {
+    "description": "Splits a workflow instance into two. Workflow-agnostic — operates on instances regardless of which pipeline they run.",
+    "operation": {
+      "input": "instance_id, context_a, context_b, epoch",
+      "preconditions": ["Instance status must be 'active'", "Parent must not be locked", "Epoch must match"],
+      "behavior": {
+        "creates": "Two new instances from the same workflow_id and workflow_version",
+        "position": "Both start at the original's current_step_id (or operator sets different step_ids)",
+        "context": "Caller provides context for each (e.g. headcount split). Engine validates against context_schema.",
+        "flags": "Both inherit current flag state from original",
+        "original": "Original instance status set to 'split'. Terminal.",
+        "tracking": "Both new instances have split_from set to original instance_id",
+        "timers": "If original was on auto-duration step, both children get fresh due_at computed from now."
+      }
+    },
+    "notes": "The split mechanic doesn't know about headcount, waivers, or bookings. It knows about context bags and step_ids. The calling domain system (check-in service) is responsible for splitting context correctly."
+  },
+
+  "condition_language": {
+    "description": "Simple expression language for gate and auto conditions. Intentionally limited. Evaluated against instance context. Parsed and validated at publish time — never parsed at runtime.",
+    "grammar": {
+      "expression": "field operator value",
+      "field": "any key declared in context_schema, or 'flags.<flag_key>'",
+      "operator": "== | != | >= | <= | > | <",
+      "value": "number | boolean | string literal | field reference"
+    },
+    "validation_at_publish": {
+      "checks": [
+        "All referenced fields exist in context_schema",
+        "Operator is valid for the field's type (no >= on booleans)",
+        "Field-to-field comparisons have compatible types",
+        "Expression parses into a valid AST"
+      ],
+      "output": "Stored condition_ast on the step config. Runtime evaluator uses AST, never re-parses the string."
+    },
+    "examples": [
+      "waiver_count == headcount",
+      "payment_confirmed == true",
+      "flags.gear_returned == true",
+      "pressure_psi >= 800",
+      "parts_replaced == parts_required"
+    ],
+    "constraints": [
+      "No compound expressions (no AND/OR). One condition per gate. Use multiple sequential gates for compound logic.",
+      "No function calls. No arithmetic. If a derived value is needed, it should be a computed context field populated by the domain system.",
+      "If a condition can't be expressed in this language, it should be a manual step with operator judgment. The operator is the smart part of the system."
+    ]
+  },
+
+  "generic_rendering": {
+    "description": "Any UI that renders workflow instances does so generically. It reads the workflow definition and instance state — never domain-specific logic.",
+    "rendering_rules": {
+      "progress": "Steps displayed as ordered indicators (by position) grouped by phase. Completed = filled, current = highlighted, upcoming = dim.",
+      "current_step_action": {
+        "manual": "Show advance button",
+        "gate": "Show advance button. On failure, show block message with interpolated context values.",
+        "auto_duration": "Show countdown timer based on due_at. No advance button.",
+        "auto_condition": "Show waiting indicator. No advance button."
+      },
+      "flags": "Rendered as independent toggles alongside progress indicator.",
+      "phases": "Group steps visually. Collapse completed phases. Highlight active phase.",
+      "optional_steps": "Show skip action alongside advance button.",
+      "paused_instance": "Dim the progress indicator. Show 'Paused' status. If on duration step, show frozen time remaining.",
+      "cancelled_instance": "Grey out. Show 'Cancelled' status. No actions available.",
+      "split_instance": "Show as terminal with link to child instances."
+    },
+    "notes": "Adding a new workflow with different steps, phases, and conditions requires zero UI code changes. The renderer reads definitions."
+  },
+
+  "example_workflows": {
+    "check_in_paintball": {
+      "name": "Standard Paintball Flow",
+      "owner_type": "product",
+      "context_schema": [
+        { "key": "headcount", "type": "number", "source": "input", "description": "Number of guests in the group" },
+        { "key": "waiver_count", "type": "number", "source": "computed", "description": "Number of signed waivers linked to this group" },
+        { "key": "payment_confirmed", "type": "boolean", "source": "external", "description": "Whether payment has been verified" }
+      ],
+      "steps": [
+        { "step_id": "pb_prep", "position": 1, "label": "Prepped", "type": "manual", "phase": "pre_arrival" },
+        { "step_id": "pb_fill", "position": 2, "label": "Filled", "type": "manual", "phase": "pre_arrival" },
+        { "step_id": "pb_arrive", "position": 3, "label": "Arrived", "type": "manual", "phase": "check_in" },
+        { "step_id": "pb_checkin", "position": 4, "label": "Checked In", "type": "manual", "phase": "check_in" },
+        { "step_id": "pb_waivers", "position": 5, "label": "Waivers Complete", "type": "gate", "phase": "check_in", "config": { "condition": "waiver_count == headcount", "message": "Waiver count ({waiver_count}) does not match headcount ({headcount})" } },
+        { "step_id": "pb_payment", "position": 6, "label": "Payment Verified", "type": "gate", "phase": "check_in", "config": { "condition": "payment_confirmed == true", "message": "Payment has not been confirmed" } },
+        { "step_id": "pb_safety", "position": 7, "label": "Safety Orientation", "type": "manual", "phase": "service" },
+        { "step_id": "pb_play", "position": 8, "label": "Playing", "type": "manual", "phase": "service" },
+        { "step_id": "pb_done", "position": 9, "label": "Complete", "type": "manual", "phase": "service" }
+      ],
+      "flags": [
+        { "flag_key": "photos_taken", "label": "Photos Taken", "default": false }
+      ]
+    },
+
+    "check_in_escape_room": {
+      "name": "Escape Room Flow",
+      "owner_type": "product",
+      "context_schema": [
+        { "key": "headcount", "type": "number", "source": "input", "description": "Number of guests in the group" },
+        { "key": "waiver_count", "type": "number", "source": "computed", "description": "Number of signed waivers linked to this group" },
+        { "key": "payment_confirmed", "type": "boolean", "source": "external", "description": "Whether payment has been verified" }
+      ],
+      "steps": [
+        { "step_id": "er_reset", "position": 1, "label": "Room Reset", "type": "manual", "phase": "pre_arrival" },
+        { "step_id": "er_arrive", "position": 2, "label": "Arrived", "type": "manual", "phase": "check_in" },
+        { "step_id": "er_checkin", "position": 3, "label": "Checked In", "type": "manual", "phase": "check_in" },
+        { "step_id": "er_waivers", "position": 4, "label": "Waivers Complete", "type": "gate", "phase": "check_in", "config": { "condition": "waiver_count == headcount", "message": "Waiver count ({waiver_count}) does not match headcount ({headcount})" } },
+        { "step_id": "er_brief", "position": 5, "label": "Briefing", "type": "manual", "phase": "service" },
+        { "step_id": "er_session", "position": 6, "label": "In Session", "type": "auto", "phase": "service", "config": { "trigger": "duration", "duration_minutes": 60, "message": "60-minute session complete" } },
+        { "step_id": "er_debrief", "position": 7, "label": "Debrief", "type": "manual", "phase": "service" },
+        { "step_id": "er_done", "position": 8, "label": "Complete", "type": "manual", "phase": "service" }
+      ],
+      "flags": [
+        { "flag_key": "photos_taken", "label": "Group Photo", "default": false }
+      ]
+    },
+
+    "equipment_marker_maintenance": {
+      "name": "Marker Maintenance Cycle",
+      "owner_type": "asset_type",
+      "context_schema": [
+        { "key": "pressure_psi", "type": "number", "source": "input", "description": "Air pressure reading in PSI" },
+        { "key": "parts_replaced", "type": "number", "source": "input", "description": "Number of worn parts replaced" },
+        { "key": "parts_required", "type": "number", "source": "computed", "description": "Number of parts flagged for replacement during inspection" },
+        { "key": "chrono_fps", "type": "number", "source": "input", "description": "Chronograph reading in feet per second" }
+      ],
+      "steps": [
+        { "step_id": "mx_pull", "position": 1, "label": "Pull from Inventory", "type": "manual", "phase": "intake" },
+        { "step_id": "mx_disasm", "position": 2, "label": "Disassemble", "type": "manual", "phase": "inspection" },
+        { "step_id": "mx_inspect", "position": 3, "label": "Inspect & Log Wear", "type": "manual", "phase": "inspection" },
+        { "step_id": "mx_parts", "position": 4, "label": "Parts Replaced", "type": "gate", "phase": "repair", "config": { "condition": "parts_replaced == parts_required", "message": "{parts_replaced} of {parts_required} required parts replaced" } },
+        { "step_id": "mx_reasm", "position": 5, "label": "Reassemble", "type": "manual", "phase": "repair" },
+        { "step_id": "mx_pressure", "position": 6, "label": "Pressure Test", "type": "gate", "phase": "verification", "config": { "condition": "pressure_psi >= 800", "message": "Pressure {pressure_psi} PSI is below 800 PSI minimum" } },
+        { "step_id": "mx_chrono", "position": 7, "label": "Chrono Test", "type": "gate", "phase": "verification", "config": { "condition": "chrono_fps <= 280", "message": "Velocity {chrono_fps} FPS exceeds 280 FPS safety limit" } },
+        { "step_id": "mx_return", "position": 8, "label": "Return to Inventory", "type": "manual", "phase": "completion" }
+      ],
+      "flags": [
+        { "flag_key": "needs_followup", "label": "Needs Follow-Up", "default": false },
+        { "flag_key": "cosmetic_damage", "label": "Cosmetic Damage Noted", "default": false }
+      ]
+    },
+
+    "rental_gear_fulfillment": {
+      "name": "Rental Gear Fulfillment",
+      "owner_type": "product",
+      "context_schema": [
+        { "key": "items_requested", "type": "number", "source": "input", "description": "Number of rental items requested" },
+        { "key": "items_issued", "type": "number", "source": "input", "description": "Number of rental items issued to guest" },
+        { "key": "items_returned", "type": "number", "source": "input", "description": "Number of rental items returned by guest" },
+        { "key": "damage_assessed", "type": "boolean", "source": "input", "description": "Whether returned items have been inspected for damage" }
+      ],
+      "steps": [
+        { "step_id": "rg_received", "position": 1, "label": "Order Received", "type": "manual", "phase": "preparation" },
+        { "step_id": "rg_pulled", "position": 2, "label": "Gear Pulled", "type": "manual", "phase": "preparation" },
+        { "step_id": "rg_issued", "position": 3, "label": "All Items Issued", "type": "gate", "phase": "fulfillment", "config": { "condition": "items_issued == items_requested", "message": "{items_issued} of {items_requested} items issued" } },
+        { "step_id": "rg_inuse", "position": 4, "label": "In Use", "type": "manual", "phase": "active" },
+        { "step_id": "rg_returned", "position": 5, "label": "All Items Returned", "type": "gate", "phase": "return", "config": { "condition": "items_returned == items_issued", "message": "{items_returned} of {items_issued} items returned" } },
+        { "step_id": "rg_damage", "position": 6, "label": "Damage Check", "type": "gate", "phase": "return", "config": { "condition": "damage_assessed == true", "message": "Returned items have not been inspected" } },
+        { "step_id": "rg_done", "position": 7, "label": "Complete", "type": "manual", "phase": "return" }
+      ],
+      "flags": [
+        { "flag_key": "damage_found", "label": "Damage Found", "default": false },
+        { "flag_key": "charge_applied", "label": "Damage Charge Applied", "default": false }
+      ]
+    }
+  },
+
+  "domain_integration_pattern": {
+    "description": "How domain systems connect to the workflow engine without coupling.",
+    "pattern": {
+      "1_create": "Domain entity creates a workflow instance: POST /api/workflow-instances { workflow_id, initial_context }. Engine pins to latest published version.",
+      "2_link": "Domain entity stores the returned instance_id on itself (e.g. check_in_group.workflow_instance_id, maintenance_ticket.workflow_instance_id)",
+      "3_feed": "Domain systems update instance context as events occur: PATCH /api/workflow-instances/{id}/context { waiver_count: 12 }. All mutations include parent epoch.",
+      "4_advance": "Operators advance via UI, engine evaluates: POST /api/workflow-instances/{id}/advance. Epoch and lock checked before processing.",
+      "5_render": "UI reads instance + definition version, renders generically"
+    },
+    "concurrency_requirement": "Any domain entity that spawns workflow instances must implement the epoch/lock pattern from concurrency.json. The workflow engine assumes the parent provides epoch on all mutations and lock status is checkable.",
+    "api": {
+      "/api/workflows": {
+        "GET /": { "min_role": "operator", "description": "List workflow definitions (published versions)" },
+        "GET /{id}": { "min_role": "operator", "description": "Workflow definition with steps, context_schema, and version history" },
+        "POST /": { "min_role": "admin", "description": "Create workflow definition (draft)" },
+        "PUT /{id}": { "min_role": "admin", "description": "Update draft definition" },
+        "POST /{id}/publish": { "min_role": "admin", "description": "Validate conditions against context_schema, publish version, make immutable for breaking changes" },
+        "POST /{id}/archive": { "min_role": "admin", "description": "Archive version (no new instances, running instances unaffected)" },
+        "DELETE /{id}": { "min_role": "admin", "description": "Delete draft only. Published/archived versions cannot be deleted." }
+      },
+      "/api/workflow-instances": {
+        "POST /": { "min_role": "operator", "description": "Create instance from latest published version with initial context" },
+        "GET /{id}": { "min_role": "operator", "description": "Instance state: current_step_id, context, flags, status, due_at" },
+        "POST /{id}/advance": { "min_role": "operator", "description": "Attempt to advance current step. Requires epoch." },
+        "POST /{id}/skip": { "min_role": "operator", "description": "Skip current step (if optional, not gate). Requires epoch." },
+        "PUT /{id}/position": { "min_role": "operator", "description": "Override current step_id. Requires epoch." },
+        "PATCH /{id}/context": { "min_role": "operator", "description": "Update instance context fields. Requires epoch." },
+        "POST /{id}/flags/{key}": { "min_role": "operator", "description": "Toggle flag. Requires epoch." },
+        "POST /{id}/split": { "min_role": "operator", "description": "Split instance into two with provided contexts. Requires epoch." },
+        "POST /{id}/pause": { "min_role": "operator", "description": "Pause instance. Freezes duration timers. Requires epoch." },
+        "POST /{id}/resume": { "min_role": "operator", "description": "Resume paused instance. Restarts duration timers. Requires epoch." },
+        "POST /{id}/cancel": { "min_role": "operator", "description": "Cancel instance. Terminal. Requires epoch." }
+      }
+    }
+  },
+
+  "future_considerations": {
+    "priority": "P1 — implement after core engine is proven",
+    "audit_event_log": {
+      "description": "Append-only log of state-changing operations on workflow instances.",
+      "events": ["advance_success", "advance_blocked", "skip", "set_position", "auto_advance", "toggle_flag", "pause", "resume", "cancel", "split", "status_change"],
+      "event_shape": {
+        "fields": ["event_id", "instance_id", "event_type", "from_step_id", "to_step_id", "actor_id", "actor_type (operator | system)", "created_at", "payload_json"]
+      },
+      "notes": "Epoch changes on the parent entity provide basic audit for v1. Formal event log adds granular step-level tracking, time-in-step analytics, and liability trail."
+    },
+    "idempotency_keys": {
+      "description": "Optional Idempotency-Key header on mutating endpoints to make retries safe.",
+      "priority": "P2"
+    },
+    "richer_condition_language": {
+      "description": "Simple AND support (no parentheses) and 'in' operator. No functions or arithmetic.",
+      "priority": "P2"
+    },
+    "context_write_policy": {
+      "description": "Per-field write access control (operator | system | admin) to prevent accidental edits to critical fields.",
+      "priority": "P2"
+    }
+  }
+}

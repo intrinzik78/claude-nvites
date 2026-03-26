@@ -1,0 +1,96 @@
+{
+  "version": "1.0",
+
+  "_guide": {
+    "intake": "Sections marked INTAKE are populated during project setup via /intake. These capture what you know on day 1.",
+    "evolves": "Sections marked EVOLVES start empty and are populated through development. /GUARDIAN maintains contracts and evidence.",
+    "usage": "Copy this template to your project root as project-schema.json. Run /intake to populate interactively, or fill in manually."
+  },
+
+  "project": {
+    "_tier": "INTAKE",
+    "intent": "One sentence: what does this project do and for whom?",
+    "orientation": "Tech stack, repo structure, deployment target. Example: 'Cargo workspace. Rust API server, Svelte frontend, PostgreSQL, deployed to AWS.'"
+  },
+
+  "principles": [
+    {
+      "_tier": "INTAKE — capture 2-4 founding rules. These are non-negotiable architectural or design decisions.",
+      "id": "kebab-case-id",
+      "statement": "The rule, stated positively. What must always be true?",
+      "violation": "How would you recognize this rule being broken? Be specific.",
+      "origin": "human"
+    }
+  ],
+
+  "platform": {
+    "_tier": "EVOLVES — grows as features are built",
+    "components": ["list", "platform-level", "crates-or-packages"],
+    "capabilities": {}
+  },
+
+  "structure": {
+    "repo": {
+      "_tier": "INTAKE",
+      "description": "Repo layout: monorepo vs multi-repo, branch strategy, CI/CD.",
+      "example": "Single Cargo workspace. Branches: dev → staging → main."
+    },
+    "crates": {
+      "_tier": "INTAKE — list major components with one-line descriptions",
+      "example-server": "API server. Handles auth, data, business logic.",
+      "example-frontend": "Svelte SPA. Consumes API.",
+      "example-cli": "CLI tool for testing and admin."
+    },
+    "docs": {
+      "_tier": "EVOLVES — tracked as documentation is created"
+    },
+    "mental_model": {
+      "_tier": "INTAKE",
+      "description": "How the pieces relate. One sentence. Example: 'Server is the platform. Frontend and mobile are surfaces that consume the SDK.'"
+    }
+  },
+
+  "surfaces": [
+    {
+      "_tier": "INTAKE — list known apps/surfaces. Details evolve.",
+      "id": "short-id",
+      "crate": "crate-or-package-name",
+      "intent": "What this surface does and who uses it.",
+      "distribution": {
+        "web": false,
+        "desktop": [],
+        "mobile": []
+      }
+    }
+  ],
+
+  "contracts": {
+    "_tier": "EVOLVES — discovered through development. Maintained by /GUARDIAN.",
+    "_structure": {
+      "id": "kebab-case-id",
+      "boundary": "Where this contract applies (e.g. 'API → Database', 'Auth → Handlers')",
+      "rule": "What must be true.",
+      "violation": "How to detect a breach.",
+      "confidence": "tested | designed | partial | assumed | unbuilt",
+      "evidence": "Current basis for the confidence level.",
+      "origin": "human | claude"
+    },
+    "items": []
+  },
+
+  "risks": {
+    "_tier": "EVOLVES — identified as complexity surfaces.",
+    "_structure": {
+      "id": "kebab-case-id",
+      "description": "What could go wrong.",
+      "evidence": "Why this is a real risk.",
+      "contracts": ["contract-ids", "that-mitigate"]
+    },
+    "items": []
+  },
+
+  "open_questions": {
+    "_tier": "INTAKE — capture known unknowns. These shape early sessions.",
+    "items": []
+  }
+}

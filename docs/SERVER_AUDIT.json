@@ -1,0 +1,79 @@
+{
+  "title": "Server Health Audit — Open Items",
+  "date": "2026-03-11",
+  "last_reviewed": "2026-03-21",
+  "note": "Resolved findings archived to monorepo/archive/docs/SERVER_AUDIT_RESOLVED.json",
+
+  "findings": [
+    {
+      "id": "AUDIT-008",
+      "status": "deferred — placeholder stubs for planned verification endpoints, not under active dev",
+      "problem": "8 dead verification stub files",
+      "reasoning": "verifications/email/ has 3 empty files (email_delete.rs, email_get.rs, email_put.rs). verifications/sms/ has 5 empty files with mod declarations but zero pub use re-exports and no routes. These compile but serve no purpose.",
+      "solution": "Delete all 8 empty files. Remove their mod declarations from the respective mod.rs files. If SMS verification is planned, track it as a feature, not as empty source files.",
+      "confidence": "certain",
+      "effort": "small",
+      "files": [
+        "server/api/src/api/verifications/email/email_delete.rs",
+        "server/api/src/api/verifications/email/email_get.rs",
+        "server/api/src/api/verifications/email/email_put.rs",
+        "server/api/src/api/verifications/sms/sms_delete.rs",
+        "server/api/src/api/verifications/sms/sms_get.rs",
+        "server/api/src/api/verifications/sms/sms_patch.rs",
+        "server/api/src/api/verifications/sms/sms_post.rs",
+        "server/api/src/api/verifications/sms/sms_put.rs",
+        "server/api/src/api/verifications/sms/mod.rs",
+        "server/api/src/api/verifications/email/mod.rs"
+      ]
+    },
+    {
+      "id": "AUDIT-013",
+      "status": "deferred — dispatched to docs/DISPATCH_WORKFLOW_ERRORS.md; requires operator input on operational messages before implementation",
+      "problem": "WorkflowError string variants expose internal identifiers to clients",
+      "reasoning": "StepNotFound(String), InvalidCondition(String), SchemaViolation(String) pass through we.to_string() to the HTTP response body. EpochMismatch exposes both expected and actual epoch values. Waiver workflows may have a public variant — internal step names, condition parse errors, and server state would leak to untrusted actors.",
+      "solution": "Replace we.to_string() reason strings with human-written operational messages. Log full internal detail at error level for dev diagnosis. Keep error codes (2003-2014) unchanged. Global solution — sanitize in to_api_error_message() once so all future endpoints get safe defaults.",
+      "confidence": "high",
+      "effort": "medium",
+      "files": [
+        "server/api/src/enums/error.rs"
+      ]
+    },
+    {
+      "id": "AUDIT-014",
+      "status": "deferred — real fix is operational alerting, not error mapping; dispatched to docs/DISPATCH_EMAIL_LOGGER.md",
+      "problem": "BookingConfirmationEmailRejected not in to_api_error_message()",
+      "reasoning": "Variant fires in a spawned task after the 201 is already sent — never produces an HTTP response. Postmark rejection detail already persisted in email_postmark_log. Real gap: customer books but won't receive confirmation email, and no one is notified. Log line (warn-level) and DB row exist but nobody watches them during operations.",
+      "solution": "Build an operational alerting path via system error notification emails (see DISPATCH_EMAIL_LOGGER.md). Promote log level from warn to error when alerting is built.",
+      "confidence": "certain",
+      "effort": "medium — alerting feature, not a one-line fix",
+      "files": [
+        "server/api/src/api/bookings/bookings_post.rs",
+        "server/api/src/enums/error.rs"
+      ]
+    },
+    {
+      "id": "AUDIT-015",
+      "status": "deferred — photo system not yet designed; revisit when building photo experience",
+      "problem": "Photo upload uses extension-only MIME validation",
+      "reasoning": "Extension whitelist (jpg/jpeg/png/webp/gif) and MIME type derived from client-supplied filename. No server-side magic-byte verification. A renamed non-image with a .jpg extension would be accepted.",
+      "solution": "Read first few bytes and check magic numbers, or always serve with Content-Disposition: attachment.",
+      "confidence": "high",
+      "effort": "small",
+      "files": [
+        "server/api/src/api/albums/photos_post.rs"
+      ]
+    },
+    {
+      "id": "AUDIT-019",
+      "status": "deferred — code fix shipped (let Some + tracing::error + continue); notification layer dispatched to docs/DISPATCH_EMAIL_LOGGER.md",
+      "problem": "Invariant-based .unwrap() calls in availability_get.rs",
+      "reasoning": "availability_get.rs used NaiveTime::from_hms_opt(...).unwrap() for computed slot times. bookings_post.rs unwrap already removed in prior work. Invalid slot times from misconfigured operating hours would panic the handler (500). Replaced with skip-and-log, but the error still goes unmonitored — silent revenue loss if slots are silently skipped.",
+      "solution": "System error notification email when invalid slots are generated (see DISPATCH_EMAIL_LOGGER.md).",
+      "confidence": "certain",
+      "effort": "small (code fix done) + medium (notification layer)",
+      "files": [
+        "server/api/src/api/bookings/availability_get.rs"
+      ]
+    }
+  ]
+}

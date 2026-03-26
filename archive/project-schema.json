@@ -1,0 +1,108 @@
+{
+  "version": "1.0",
+  "project": {
+    "intent": "UWZ is a paintball-based fun and entertainment center where guests book life celebrations and events via online bookings.",
+    "orientation": "Cargo workspace monorepo. Rust (Actix-web) API server, Svelte frontends (Tauri desktop + web), MySQL database. Rust SDK for Tauri surfaces, TypeScript SDK for the website."
+  },
+  "principles": [
+    {
+      "id": "sdk-only-access",
+      "statement": "All surfaces connect to the server exclusively through an SDK. No direct database connections or raw HTTP calls from surfaces.",
+      "violation": "A surface importing a DB driver, constructing raw HTTP requests, or bypassing the SDK to reach the server.",
+      "origin": "human"
+    },
+    {
+      "id": "schema-contract-enforcement",
+      "statement": "Tools enforce schema contracts. No schema changes without GUARDIAN review.",
+      "violation": "A tool or skill modifying project-schema.json or business-schema.json without running through the GUARDIAN approval flow.",
+      "origin": "human"
+    },
+    {
+      "id": "red-team-all-plans",
+      "statement": "All implementation plans must be red-teamed before execution.",
+      "violation": "A plan being implemented without first being challenged through a red team or review step.",
+      "origin": "human"
+    }
+  ],
+  "platform": {
+    "components": ["server", "api-contracts", "sdk-rust", "sdk-ts"],
+    "capabilities": {}
+  },
+  "structure": {
+    "repo": "Monorepo with server/ Cargo workspace and standalone api-contracts/ crate at root. Naming: server/, sdk-{lang}/, cli-{name}/, surface-{name}/. Build pipeline: cargo xtask build-all (api-contracts → schema-emitter → dist/openapi.json → server). Branches: worktrees per crate → dev → staging → production. Cross-cutting work on dev. Hotfixes on dev pushed through staging to main.",
+    "crates": {
+      "server": "Rust/Actix-web API server. Owns all data and business logic. Interacts with MySQL. No direct connections from surfaces.",
+      "api-contracts": "Standalone shared types crate at monorepo root. DTOs, OpenAPI path specs, and security modifiers. Zero server dependencies (serde, utoipa, chrono). Consumed by server workspace via path deps; SDKs will consume directly when real.",
+      "sdk-rust": "Rust SDK consumed by Tauri-based GUI surfaces (command-center, member). Wraps server API.",
+      "sdk-ts": "TypeScript SDK consumed by the website. Wraps server API.",
+      "cli-idropr": "Photo album upload and management CLI tool. Multi-part uploads to server.",
+      "cli-tako": "API secrets manager CLI tool.",
+      "cli-api-testing": "API endpoint testing CLI tool. Proof of correctness and agreement between server and database.",
+      "surface-command-center": "Tauri desktop GUI for staff at the physical location. Uses sdk-rust.",
+      "surface-member": "Tauri desktop member portal. Features TBD. Uses sdk-rust.",
+      "surface-website": "Public Svelte website. Online booking, NPS reviews, photo album viewing. Uses sdk-ts."
+    },
+    "docs": {},
+    "mental_model": "Server is the platform. Surfaces are consumers that reach the server only through SDKs. api-contracts is the shared contract boundary — all API types originate here and are consumed by server, SDKs, and surfaces. Rust SDK serves Tauri desktop apps (command-center, member). TypeScript SDK serves the website. CLI tools use the Rust SDK for operational tasks (photo uploads, secrets management)."
+  },
+  "surfaces": [
+    {
+      "id": "website",
+      "crate": "surface-website",
+      "intent": "Public-facing website where customers book events, submit NPS reviews, and view photo albums.",
+      "distribution": { "web": true, "desktop": [], "mobile": [] }
+    },
+    {
+      "id": "command-center",
+      "crate": "surface-command-center",
+      "intent": "Staff-facing desktop application for on-site operations at the physical location.",
+      "distribution": { "web": false, "desktop": ["windows", "macos"], "mobile": [] }
+    },
+    {
+      "id": "member",
+      "crate": "surface-member",
+      "intent": "Member portal for returning customers. Exact features TBD.",
+      "distribution": { "web": false, "desktop": ["windows", "macos"], "mobile": [] }
+    }
+  ],
+  "contracts": [],
+  "risks": [],
+  "open_questions": [
+    "Customer waivers: high-touch for staff in command-center, but should submission flow through website, member portal, or a dedicated surface?",
+    "Photos are first-class citizens. The website should deliver an incredible photo experience. How do we architect this?",
+    "How do we inject business/marketing/advertising/philosophy into the schema system?",
+    "Worktree workflow: worktrees persist and rebase onto dev after merge. Cross-cutting on dev. Hotfixes on dev → staging → main. Needs validation in practice.",
+    "New MySQL workflow: local MySQL pushing to cloud MySQL. Untested workflow — unclear how it will go."
+  ],
+  "resolved_questions": [
+    {
+      "question": "UX spec implementation: models struggle with current UX/UI spec format. How do we fix the tooling?",
+      "resolution": "Structured ViewModel specs (data + actions + states per route), type-enforced design system (TypeScript unions as the design vocabulary, Tailwind resolved only inside primitives), and screenshot feedback loop. Documented in UX.md. Three contracts designed but held pending per-crate schema architecture: type-enforced-design-system, two-tier-layout-model, component-layering.",
+      "date": "2026-02-16"
+    },
+    {
+      "question": "Build order starts clear (db → server → ts-SDK → rust-SDK → website) but full build sequence needs planning and red-teaming.",
+      "resolution": "Resolved by cargo xtask build-all. Build order: api-contracts → schema-emitter (emits dist/openapi.json) → server (includes dist/openapi.json via include_str!). SDK and surface steps are stubs pending migration. DEC-011 and DEC-012 document the key decisions.",
+      "date": "2026-02-18"
+    }
+  ],
+  "schema_direction": {
+    "per_crate_schemas": {
+      "status": "leaning",
+      "approach": "Option C: Per-crate standalone schemas, no inheritance. Each crate gets its own schema file with contracts relevant to that crate. No merging, no inheritance chain, no discovery logic.",
+      "rationale": "Each surface has a different audience, design intent, and distribution model. A shared surface schema would over-constrain or lowest-common-denominator. Plugging everything into the global schema causes context bloat every session pays for. Drift between crate schemas is manageable via periodic cross-cutting monorepo analysis.",
+      "origin": "human",
+      "rejected_alternatives": {
+        "scoped_contracts_in_global": "One file with scope filters. Avoids inheritance but bloats the global schema — every session loads every crate's contracts.",
+        "category_schemas": "Shared schemas per category (surface, cli, platform). Fewer files but still needs inheritance design, and surfaces are too different for a shared schema.",
+        "inherited_schemas": "Per-crate schemas inheriting from global. Creates undefined merge semantics, discovery problems, and sync burden."
+      },
+      "open_items": [
+        "File naming convention: crate-schema.json? schema.json in crate root?",
+        "GUARDIAN needs to know which schema to load per context — branch name, crate dir, or explicit parameter?",
+        "How to handle cross-cutting contracts that genuinely apply to all crates (if any emerge beyond principles)?",
+        "Drift detection: periodic cross-cutting analysis workflow needs design."
+      ]
+    }
+  }
+}
