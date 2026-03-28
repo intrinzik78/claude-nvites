@@ -1,8 +1,6 @@
 # Cold Start
 
-<!-- TODO: Rewrite for nvites project. Structure: system packages, Rust toolchain, Node/pnpm, Docker MySQL, .env setup, first build, seed data. -->
-
-Getting the nvites monorepo running on a fresh machine. Assumes Docker, Git, and a browser are already installed.
+Getting the nvites monorepo running on a fresh machine.
 
 ## Prerequisites
 
@@ -17,12 +15,22 @@ Getting the nvites monorepo running on a fresh machine. Assumes Docker, Git, and
 # 1. Start MySQL
 docker start mysql-local  # see MYSQL_PLAYBOOK.md for first-time setup
 
-# 2. Run migrations
+# 2. Create schema (first time only)
+mysql -u root -p -e "CREATE DATABASE nvites;"
+
+# 3. Run migrations
 cd server && sqlx migrate run --source migrations
 
-# 3. Install JS dependencies
+# 4. Install JS dependencies
 cd .. && pnpm install
 
-# 4. Build everything
+# 5. Build everything
 cd server && cargo xtask build-all
+
+# 6. Run the server
+cargo run -p nvites-server -- dev
 ```
+
+## .env
+
+The server loads environment variables via `dotenvy` (traverses up from server/). Create a `.env` file **outside** the monorepo (security — not in repo tree). Required variables documented in `server/api/src/types/env.rs`.

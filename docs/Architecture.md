@@ -2,7 +2,9 @@
 
 ## Intent
 
-<!-- TODO: Define nvites.me project purpose and business context in a dedicated session. -->
+nvites.me is a QR code marketing analytics service. Clients create campaigns with hyper-short URLs that forward users to a destination. As users pass through the gateway, we capture device, location, and timing data. Analytics are delivered as daily/weekly email digests — no dashboards required.
+
+Target market: small businesses tracking physical and digital marketing campaigns. Solo dev project. Experimental — market fit unvalidated.
 
 Stack: Rust (Actix-web) + Svelte + MySQL. Rust SDK for Tauri desktop apps, TypeScript SDK for website.
 
@@ -21,15 +23,14 @@ Stack: Rust (Actix-web) + Svelte + MySQL. Rust SDK for Tauri desktop apps, TypeS
 | api-contracts | Shared types (DTOs, OpenAPI paths, security modifiers). Zero server deps. Monorepo root. |
 | sdk-rust | Rust SDK for Tauri surfaces. |
 | sdk-ts | TypeScript SDK for website. OpenAPI-generated types, auth/error handling. |
-| cli-api-testing | API endpoint testing CLI. |
 
 ## Surfaces
 
 | Surface | Audience | Platform | SDK |
 |---------|----------|----------|-----|
-| website | Public customers | Web | sdk-ts |
-| command-center | Staff | Desktop (Win/macOS) | sdk-rust |
-| member | Returning members | Desktop (Win/macOS) | sdk-rust |
+| website | Public — campaign landing, client portal | Web | sdk-ts |
+| command-center | Admin (solo dev) | Desktop (Win/macOS) | sdk-rust |
+| member | Clients — real-time campaign analytics | Mobile | sdk-rust |
 
 ## Mental Model
 
@@ -56,13 +57,9 @@ Worktree branches → dev → staging → main. Cross-cutting on dev. Hotfixes: 
 
 note: `docs` dir is symlinked
 
-## Shop System
-
-**product** — add-ons, gift cards, merchandise. Has `product_type_id` discriminator, category, price. CRUD at `/v1/shop/products`. FKs to `shop_status` for active/inactive state (`EntityStatus` in code). `category` is shared data table, not enum-backed.
-
 ## Payments
 
-Authorize.Net via Accept.js (PCI SAQ-A compliant). Client-side tokenization — raw card numbers never touch the server. `PaymentNonce` carries the opaque token from client to server. Gateway integration in the `authorizenet` crate.
+Recurring billing for client subscriptions. Authorize.Net gateway integration in the `authorizenet` crate. PCI SAQ-A compliant — client-side tokenization via Accept.js, raw card numbers never touch the server. `PaymentNonce` carries the opaque token from client to server.
 
 ## Infrastructure
 

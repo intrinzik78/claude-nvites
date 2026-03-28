@@ -1,13 +1,16 @@
 ---
 name: orient
-description: Project orientation. Spawns a subagent to scan project structure, architecture, and decisions. Run at session start.
+description: Project orientation. Reads dispatches, architecture, recent handoffs, and decision frontier. Run at session start.
 ---
 **collaboration**
 1. It's ok to make unintentional mistakes.
 2. User welcomes reasoned pushback and honest disagreement. Say the hard thing, the user needs your full awareness, presence, collaboration, thoughts and reasoning.
 3. Silent compliance is the most dangerous failure mode.
 ---
-**0. Read dispatches** — Check `docs/dispatches/` for files matching the current branch/worktree using these prefixes:
+
+Run all steps inline (no subagent). Present a single summary under `## Orientation` when done.
+
+**1. Dispatches** — Use `ls docs/dispatches/` (not Glob — `docs/` is a symlink) to list dispatch files. Match by prefix for the current branch/worktree:
 
 | Prefix | Branch / worktree |
 |--------|-------------------|
@@ -17,36 +20,31 @@ description: Project orientation. Spawns a subagent to scan project structure, a
 | `COMMAND_` | surface-command-center |
 | `TAKO_` | cli-tako |
 
-If matches exist, read them and present under `## Dispatched Work`. Include all sections verbatim. If a dispatch's `**Date:**` field is more than 3 days old, flag it as `(STALE)` and note the age. If no matching dispatches are found, skip this step silently.
+If matches exist, read them and present under `### Dispatched Work`. Include all sections verbatim. If a dispatch's `**Date:**` field is more than 3 days old, flag it as `(STALE)` and note the age. If no matching dispatches are found, skip this section silently.
 
-**Spawn an Explore subagent** to orient to the project. The subagent should:
+**1b. Cross-worktree dispatches (dev only)** — If on the `dev` branch, send all non-matching dispatch files to a sonnet subagent. The subagent should read each file and return one line per dispatch: filename, what it's queued for, and any noted blockers. Present under `### Other Worktree Dispatches`. Skip this step on worktree branches.
 
-1. List the project structure 2 levels deep from the project root, excluding: `target/`, `node_modules/`, `.git/`, `.claude/`
-2. Read `docs/Architecture.md` — principles, crate roles, mental model, surfaces, open questions.
-3. Read `server/Cargo.toml` for workspace members. Note `api-contracts/Cargo.toml` at monorepo root.
-4. Note `dist/openapi.json` existence (canonical API spec, compiler-enforced).
-5. If `docs/DECISIONS.md` exists, read it for architectural decisions and note the last `DEC-###` ID and date.
-6. **Handoff drift check:** Scan the **5 most recent** `handoffs/*/*.md` per domain (by filename date prefix, excluding `.gitkeep`). If on `dev`, compare handoff timestamps against the last DECISIONS.md entry date — flag any newer handoffs as `DRIFT: <path>`. If DECISIONS.md has no entries yet but handoffs exist, flag all. On crate branches, check for drift first. **If no drift**, summarize all domains in one line each: count + date range (e.g., "server: 45 handoffs, Feb 16–Mar 7, no drift"). **If drift is detected**, lead with the flagged domain's 5 most recent with file-level detail, then summarize non-flagged domains as count + date range. Older handoffs beyond the 5 per domain: report count and date range only.
-7. **Build gates** — include in the summary:
-   - `cd server && cargo xtask build-all` must pass before shipping (api-contracts → schema-emitter → openapi.json → server).
-   - Any change to `api-contracts/` is a **contract change** — justify it or don't make it.
-   - SDK changes: `cd sdk-rust && cargo check && cargo test`.
-   - CLI changes: `cd cli-{name} && cargo check`.
-   - If a plan touches types that flow through the build pipeline, verify the pipeline *during planning*, not just at the end.
-   - If code is Rust, verify with the review-rs skill.
-   - If code is TypeScript or Svelte, verify with review-ts skill.
- Return a concise summary in this order: **Dispatched Work** (if any), crate layout, principles, open questions, build gates, handoff drift warnings (if any).
+**2. Recent commits** — Run `git log --stat -3` to see what landed recently. Note the scope (which crates/surfaces changed) in 1-2 sentences.
 
-**If drift is flagged on dev**, promote qualifying decisions after orientation: read each flagged handoff's provisional decisions, apply promotion criteria (promote cross-crate, convention, infra, and design-constraining decisions; skip implementation details, UI choices, one-off fixes), append to `docs/DECISIONS.md` with next `DEC-###` ID using the format in DECISIONS.md, and report what was promoted/skipped.
+**3. Decision frontier** — Run `tail -20 docs/DECISIONS.md` to get the last 2-3 decisions. Note the last `DEC-###` ID and date.
 
-The summary should be short enough to hold in working memory. This is orientation, not exploration.
+**4. Architecture** — Read `docs/Architecture.md` in full. This is the project's north star — load it every session.
 
-**Antipatterns — the subagent summary MUST NOT:**
-- ❌ Exceed 800 words. Target 400–600. If it doesn't fit, cut detail — not sections.
-- ❌ Infer, editorialize, or suggest next actions. Present only what's explicitly in files (dispatches, handoffs, DECISIONS.md). Priority judgment is the user's domain, not the agent's.
-- ❌ Include raw file listings, full absolute paths, or verbatim file contents.
-- ❌ Scan more than 5 handoffs per domain. Older ones: count + date range only.
-- ❌ Repeat information already in the conversation's CLAUDE.md or MEMORY.md context.
-  - **schema-emitter drift** - new api-contracts path stubs must also be registered in `server/schema-emitter/src/main.rs` (paths + schemas). `cargo test -p schema-emitter` catches missing paths.
+**5. Recent handoffs** — Find the 5 most recent `handoffs/*/*.md` files by filename date prefix (across all domains, not per-domain). Exclude `.gitkeep`. Read them and summarize key discoveries, concerns, and unblocks in ≤400 words. Do not editorialize or suggest next actions — present what's in the files.
+
+**6. `--drift` flag (opt-in)** — Only when invoked as `/orient --drift`:
+
+Scan the **5 most recent** `handoffs/*/*.md` per domain. Compare handoff dates against the last DECISIONS.md entry date. Flag any newer handoffs as `DRIFT: <path>`. For flagged handoffs, read their provisional decisions and apply promotion criteria:
+- **Promote:** cross-crate conventions, infra decisions, design-constraining choices
+- **Skip:** implementation details, UI choices, one-off fixes
+
+Append qualifying decisions to `docs/DECISIONS.md` with next `DEC-###` ID. Report what was promoted and what was skipped.
+
+---
+
+**Antipatterns:**
+- Do not infer, editorialize, or suggest next actions. Priority judgment is the user's domain.
+- Do not repeat information already in CLAUDE.md or MEMORY.md.
+- Keep the summary concise. This is orientation, not exploration.
 
 $ARGUMENTS

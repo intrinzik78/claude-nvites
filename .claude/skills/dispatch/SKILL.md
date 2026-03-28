@@ -85,5 +85,6 @@ On confirmation, write to `docs/dispatches/`. Dispatches are committed to the re
 - **Dispatches are consumed by `/handoff`** — the handoff skill archives or removes completed dispatches.
 - **Dispatches are committed**, not gitignored. They travel with the repo.
 - **No exploration.** The sonnet subagent drafts from conversation context only — no git log, no file reads, no research. The user knows what they want; write it down fast.
+- **Dispatches belong in `docs/dispatches` - Active dispatches do not belong in the `archive/dispatches` dir, place them where they will be found and used.
 
 $ARGUMENTS
