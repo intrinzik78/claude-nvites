@@ -437,6 +437,62 @@ fn builder() { ... }
 fn test_try_connect() { ... }
 ```
 
+### DB Integration Tests
+Tests against real MySQL use `DatabaseConnection::new()`. Transaction-based tests seed data, assert, then rollback. Pool-based tests (when transactions can't be used) follow cleanup-first pattern. All DB tests require `#[serial_test::serial]`.
+
+```rust
+#[actix_rt::test]
+#[serial_test::serial]
+async fn lookup_returns_active() {
+    let db = DatabaseConnection::new().await.expect("db connection");
+    let mut tx = db.pool.begin().await.expect("begin tx");
+    // seed, assert, rollback
+    tx.rollback().await.expect("rollback");
+}
+```
+
+### Handler Integration Tests
+Use `actix_web::test` to exercise handler wiring through a real HTTP request/response cycle. Import as `test as actix_test` to avoid shadowing `#[test]`.
+
+**`AppState::new_test()`** — `#[cfg(test)]` constructor in `app_state.rs` that builds a minimal `AppState` with a live database and all services disabled. Use this instead of `AppState::new()` which requires full env var setup.
+
+**`test_app!()` macro** — Pattern for building a test service with a shared `Data<AppState>` handle for post-request inspection. Defined inline in each test module that needs it:
+
+```rust
+use actix_web::{App, http::StatusCode, test as actix_test, web};
+
+macro_rules! test_app {
+    () => {{
+        let state = AppState::new_test().await;
+        let data = Data::new(state);
+        let data_ref = data.clone();
+        let app = actix_test::init_service(
+            App::new()
+                .app_data(data)
+                .route("/{code}", web::get().to(Handler::logic)),
+        )
+        .await;
+        (app, data_ref)
+    }};
+}
+
+#[actix_rt::test]
+#[serial_test::serial]
+async fn handler_returns_expected_status() {
+    let (app, data) = test_app!();
+
+    let req = actix_test::TestRequest::get().uri("/path").to_request();
+    let resp = actix_test::call_service(&app, req).await;
+
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+```
+
+**Key details:**
+- `data_ref` (cloned `Data<AppState>`) lets tests inspect cache/state after the request
+- Route registration must match the handler's expected extractors
+- All handler tests require `#[serial_test::serial]` (shared DB)
+
 ---
 
 ## Summary: Key Style Principles

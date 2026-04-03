@@ -31,6 +31,12 @@ cd server && cargo xtask build-all
 cargo run -p nvites-server -- dev
 ```
 
+## Railway Build Variables
+
+| Variable | Services | Purpose |
+|----------|----------|---------|
+| `CACHE_BUST` | server, surface-website | Forces Docker layer invalidation when Railway's cache is stale. Set to any changing value (e.g. `$RAILWAY_GIT_COMMIT_SHA` or a timestamp). Change manually when a deploy serves old code despite correct commit SHA in logs. |
+
 ## .env
 
 The server loads environment variables via `dotenvy` (traverses up from server/). Create a `.env` file **outside** the monorepo (security — not in repo tree). Required variables documented in `server/api/src/types/env.rs`.

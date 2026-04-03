@@ -1,6 +1,6 @@
 # Architectural Decisions
 
-<!-- next-id: DEC-100 -->
+<!-- next-id: DEC-103 -->
 
 > Canonical log of architectural decisions promoted from session handoffs.
 > Only edited on the integration branch (dev).
@@ -401,3 +401,15 @@ Transactional email images live in `surface-website/static/images/email/transact
 ## DEC-099 — CAS pattern for gateway-then-record handlers (2026-03-25)
 **Source**: `handoffs/server/2026-03-25-slice6-staff-payments.md`
 Handlers that call an external gateway then update a local record must use compare-and-swap: `UPDATE ... WHERE status = expected_status`. No DB locks held during network calls, no reliance on external service idempotency. Applied to payment approve/decline; same pattern required for any future "call gateway, record locally, webhook reconciles" flow.
+
+## DEC-100 — Case-sensitive code columns use utf8mb4_0900_as_cs, not utf8mb4_bin (2026-03-31)
+**Source**: `handoffs/crosscutting/2026-03-31-collation-fix-handoffs-cleanup.md`, `handoffs/crosscutting/2026-03-30-dispatch-sweep-gateway-hardening.md`
+`short_link.code` and `redirect_event.code` use `utf8mb4_0900_as_cs` collation for case-sensitive base62 comparison. `utf8mb4_bin` is banned for string columns — sqlx 0.8.x misinterprets MySQL's BINARY wire flag on `_bin` collation columns as actual binary data, crashing `String` decoding at runtime (sqlx#3387). `utf8mb4_0900_as_cs` provides identical case-sensitive semantics using MySQL 8.0's UCA 9.0 algorithm without the BINARY flag. This is the permanent fix, not a bridge to sqlx 0.9.0. Any future column requiring case-sensitive comparison must use `utf8mb4_0900_as_cs`.
+
+## DEC-101 — sqlx 0.8 trigger migrations must use single-statement bodies (2026-03-29)
+**Source**: `handoffs/crosscutting/2026-03-29-epoch-triggers-restored.md`
+sqlx 0.8 enables `CLIENT_MULTI_STATEMENTS` in the MySQL handshake, splitting migration SQL on `;`. `BEGIN...END` compound trigger bodies break because internal semicolons are misinterpreted as statement boundaries. `DELIMITER` is a mysql CLI command, not server SQL, so it cannot help. All trigger migrations must use single-statement bodies. This constraint applies until sqlx changes its migration runner behavior.
+
+## DEC-102 — Campaign status controls redirect behavior; link-level status deferred (2026-03-29)
+**Source**: `handoffs/crosscutting/2026-03-29-link-cache-rewrite-review.md`
+`CampaignStatus` (Draft, Active, Paused, Ended) determines whether a link redirects — all links in a campaign share its status. Individual link-level `status_id` on `short_link` is deferred until a product need for per-code pausing emerges. The gateway resolves campaign status via `CampaignStatus::is_redirectable()`. When link-level control is needed: add `status_id` to `short_link`, implement `Decode` for `LinkStatus`, and target it at the link's own column.
