@@ -188,10 +188,30 @@ When scope starts with `generate`, follow this contract:
 
 Never generate structured data that has no corresponding visible content on the page. That's SEO theater — search engines penalize it.
 
+## Evidence-First Analysis
+
+Any claim about what a page, site, or external reference does or doesn't have **must be verified by reading the source** — not inferred from general SEO knowledge or assumed from what "most sites" do.
+
+**Before making comparative claims:**
+1. Read the actual source. For site pages, read the route files. For external references, fetch the page.
+2. Read `seo.json` and any `docs/SEO*.md` files — they document baseline signals including structured data, meta tags, and content inventory.
+3. If a source hasn't been read, say so: "I haven't verified this" — not a confident assertion.
+
+**Confidence levels on claims:**
+- **Verified** — read the source code or fetched the page. Cite where.
+- **Documented** — found in `seo.json`, a dispatch, or a handoff. May be stale. Cite the doc and date.
+- **Assumed** — reasoning from general SEO patterns without reading this specific source. Flag explicitly and verify before acting on it.
+
+Never present an assumed claim as verified. The cost of a wrong confident claim is higher than the cost of saying "I need to check."
+
+**Red-teaming comparative analysis:**
+Before presenting a "new approach wins" or "current site lacks X" conclusion, invert the assumption. Ask: "What if the current site *does* have this?" and check. A site that's been ranking for a while is likely doing something right — assume it's correct until proven otherwise.
+
 ## Anti-patterns
 
 - **Page-by-page tunnel vision** — auditing each file in isolation without understanding how it fits the site. The SEO skill's value is the holistic view.
 - **Generating without auditing** — jumping to write JSON-LD or meta tags without first understanding what already exists.
+- **Asserting without reading** — making claims about what the site or external references lack without reading their actual source. This is the most dangerous anti-pattern because it produces confident wrong analysis that drives bad decisions.
 - **SEO theater** — adding meta tags to pages that should be noindexed, or structured data with no corresponding visible content.
 - **Keyword stuffing** — cramming keywords into titles, headings, and alt text unnaturally. Write for humans who happen to be well-structured for machines.
 - **Ignoring framework defaults** — the framework may already provide viewport meta, charset, module scripts. Don't flag what's already handled correctly.

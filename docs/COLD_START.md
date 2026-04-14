@@ -4,8 +4,9 @@ Getting the nvites monorepo running on a fresh machine.
 
 ## Prerequisites
 
+- **System packages** (Debian/Ubuntu): `sudo apt install pkg-config libssl-dev` — required by `sqlx-cli` to compile against OpenSSL headers
 - Rust (via rustup, stable channel)
-- Node.js 24+ and pnpm
+- Node.js 24+ via corepack: `corepack enable && corepack prepare pnpm@latest --activate` (or pin a specific version — check `package.json` engines field)
 - Docker (for local MySQL)
 - `sqlx-cli`: `cargo install sqlx-cli --features mysql`
 
@@ -29,6 +30,9 @@ cd server && cargo xtask build-all
 
 # 6. Run the server
 cargo run -p nvites-server -- dev
+
+# 7. Install git hooks (first time only — if xtask target exists)
+cd server && cargo xtask install-hooks
 ```
 
 ## Railway Build Variables

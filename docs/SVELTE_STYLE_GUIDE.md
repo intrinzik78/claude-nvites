@@ -176,6 +176,47 @@ let { onSave, onCancel, errorMessage, isError, isLoading }: Props = $props();
 </svelte:element>
 ```
 
+### DOM Event Handlers (CSP Safety)
+
+For DOM events that can fire **before hydration** (`load`, `error`, `loadstart`, `canplay`, etc.), do not use declarative `onload={handler}` syntax on the element. Svelte 5 emits an inline capture stub — `onload="this.__e=event"` — in the SSR HTML to cache the event for post-hydration replay. That inline attribute is blocked by any CSP with a strict `script-src` directive (no `'unsafe-inline'`, no `'unsafe-hashes'`), which both fails the Lighthouse `errors-in-console` Best Practices audit and silently prevents the handler from running.
+
+This is a two-headed failure: a visible Best Practices regression AND a latent functional bug where the handler never fires on fresh (non-cached) loads.
+
+**Wrong:**
+
+```svelte
+<img bind:this={imgEl} onload={() => (loaded = true)} src="/hero.webp" />
+```
+
+**Right — programmatic listener in `$effect`:**
+
+```svelte
+<script lang="ts">
+    let imgEl = $state<HTMLImageElement | null>(null);
+    let loaded = $state(false);
+
+    $effect(() => {
+        const img = imgEl;
+        if (!img) return;
+        // Cached / pre-hydration: image already complete
+        if (img.complete && img.naturalWidth > 0) {
+            loaded = true;
+            return;
+        }
+        // Post-hydration: attach listener programmatically
+        const handler = () => { loaded = true; };
+        img.addEventListener('load', handler, { once: true });
+        return () => img.removeEventListener('load', handler);
+    });
+</script>
+
+<img bind:this={imgEl} src="/hero.webp" class:is-loaded={loaded} />
+```
+
+The `const img = imgEl` capture gives the cleanup closure a stable reference (since `imgEl` is `$state` and can change). The `complete` check handles cached/pre-hydration loads where the event has already fired. The `addEventListener` path handles post-hydration loads without emitting any inline attribute to SSR HTML.
+
+**This does not apply to delegated events** (`onclick`, `oninput`, `onchange`, `onkeydown`, etc.). Svelte attaches those at the document level and they never emit inline capture stubs — declarative syntax is fine for user-interaction events because they can't fire before hydration anyway.
+
 ---
 
 ## Svelte 5 Runes
@@ -456,6 +497,37 @@ export function createBookingFlow() {
 Each surface defines its font families via CSS custom properties. The surface skill specifies the actual typefaces — the style guide enforces how they're used:
 - Hierarchy through weight (400–700), size, and letter-spacing
 - Font families resolved in `lib/components/` primitives, never in pages or `_components/`
+
+#### Font File Location & Caching
+
+Font files MUST live in `src/lib/fonts/` and be referenced with **relative paths** in `app.css`:
+
+```css
+@font-face {
+    font-family: 'ExampleFont';
+    src: url('./lib/fonts/ExampleFont.woff2') format('woff2'),
+         url('./lib/fonts/ExampleFont.woff') format('woff');
+    font-display: swap;
+}
+```
+
+**Why:** `adapter-node`'s static file server (`sirv`) only sets `cache-control: public,max-age=31536000,immutable` on files under `/_app/immutable/`. Fonts in `static/` get no cache headers — browsers heuristically cache them for ~4 hours. Relative `url()` paths cause Vite to content-hash the files and place them in `_app/immutable/assets/`, where they receive the immutable header automatically.
+
+**Rules:**
+- Use relative paths (`./lib/fonts/`) in `@font-face`, never absolute (`/fonts/`). Absolute paths bypass Vite.
+- Provide woff2 (primary) + woff (fallback). The CSS font stack provides system font fallback for the <1% of browsers that support neither.
+- Preload the primary heading font (LCP-critical) from the root `+layout.svelte` using Vite's `?url` import — not from `app.html` (static template can't reference hashed filenames):
+
+```svelte
+<script lang="ts">
+    import fontUrl from '$lib/fonts/HeadingFont.woff2?url';
+</script>
+<svelte:head>
+    <link rel="preload" href={fontUrl} as="font" type="font/woff2" crossorigin="anonymous" />
+</svelte:head>
+```
+
+- Do NOT put fonts in `static/fonts/` for the main site. That directory exists only for self-contained pages that run outside the adapter (e.g., maintenance pages served from `hooks.server.ts`).
 
 ### Color Variants
 

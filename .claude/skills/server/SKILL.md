@@ -18,6 +18,7 @@ Every endpoint is a **contract**. Type safety at the boundary, validation before
 - **Placing a handler file directly in `api/`** — handlers live in domain subdirectories (`api/queue_entries/`, `api/workflow_instances/`, etc.). Each subdirectory has a `mod.rs` that declares submodules and barrel-exports the handler structs
 - **Using `sqlx::query!` compile-time macros** — this codebase uses `sqlx::query_as()` with string SQL throughout. Follow the existing pattern
 - **Adding a new type** without checking `traits/` for existing `to_*` conversion traits to implement — the codebase has ~27 conversion traits (e.g. `ToHttpResponse`, `ToPermission`, `ToAuthorizationStatus`, `ToHash`, `ToEncryptedBuffer`). New types that participate in existing flows need the appropriate trait impls
+- **Writing code without verifying affected tests.** Any code change demands a test check — run `cargo test -p nvites-server` after every write block, not just after /review-rs. Migrations that change seeded data (lookup tables, session state) break integration tests that assert those values. A passing `cargo build` or `cargo clippy` does not prove correctness. Small "fix-up" edits after review are especially dangerous — the full review cycle gets skipped because "it's just a tweak"
 - **Skipping review-rs skill use** as verification of a write block. the review-rs skill identifies patterns and conventions that were missed. skipping it forces the human user to remember to run the skill manually leading to convention and pattern drift.
 
 ## Type Flow
@@ -153,7 +154,7 @@ Start from the contract, work inward:
 
 - Unit tests: in-file `#[cfg(test)]` modules alongside the code they test
 - Integration tests: `server/api/src/types/workflow/integration_tests.rs` — tests against real MySQL, not mocks
-- Run: `cd server && cargo test -p uwz-server && cargo clippy`
+- Run: `cd server && cargo test -p nvites-server && cargo clippy`
 - New domain types should include unit tests for helper functions, DTO mappings, and enum round-trips
 - New workflow logic should extend the integration test file
 

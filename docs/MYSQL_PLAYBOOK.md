@@ -125,6 +125,27 @@ After merge conflicts in `.sqlx/`, always regenerate: `cargo sqlx prepare`.
 
 ## 5. Cloud SQL Connection
 
+### Cloud SQL Instance Flags
+
+When standing up a new Cloud SQL instance (or connecting to an existing one for the first time), these flags must be set. Without them, migrations that create triggers or stored functions will fail with `1419 (HY000): You do not have the SUPER privilege and binary logging is enabled`.
+
+```bash
+gcloud sql instances patch INSTANCE_NAME --database-flags \
+  log_bin_trust_function_creators=on,\
+  character_set_server=utf8mb4,\
+  default_time_zone=+00:00
+```
+
+Or via Cloud Console: **SQL instance → Edit → Flags**.
+
+| Flag | Value | Why |
+|------|-------|-----|
+| `log_bin_trust_function_creators` | `on` | Cloud SQL enables binary logging and doesn't grant SUPER. Without this, `CREATE TRIGGER` and `CREATE FUNCTION` are rejected. Safe to leave on — it relaxes the privilege check for creation, not execution. |
+| `character_set_server` | `utf8mb4` | Match local Docker config. |
+| `default_time_zone` | `+00:00` | All timestamps in UTC. Match local Docker config. |
+
+**Note:** Changing flags triggers an instance restart (brief downtime). Batch flag changes into a single `patch` command to minimize restarts.
+
 ### Install Auth Proxy
 
 ```bash
@@ -146,9 +167,21 @@ sqlx migrate run
 
 ### Run migrations against cloud
 
+**Via Auth Proxy (recommended):**
 ```bash
 DATABASE_URL=mysql://user:pass@127.0.0.1:3307/nvites sqlx migrate run
 ```
+
+**Direct connection (run from monorepo root):**
+```bash
+DATABASE_URL='mysql://USER:PASSWORD@<CLOUD_SQL_PUBLIC_IP>:3306/nvites?ssl-mode=required&ssl-ca=server/certs/<SERVER_CA_CERT>.pem' \
+    sqlx migrate run --source server/migrations
+```
+
+**Gotchas:**
+- **Bash `!` expansion:** If the password contains `!`, bash will try history expansion even inside double quotes. Use single quotes around the entire `DATABASE_URL` value.
+- **URL-encode special characters in passwords:** `@` → `%40`, `#` → `%23`, `!` → `%21`, etc. Use: `python3 -c "import urllib.parse; print(urllib.parse.quote('PASSWORD', safe=''))"`
+- **Checksum mismatch:** If you edit a migration file after applying it locally, sqlx will reject it with "was previously applied but has been modified." This only affects the database where it was already applied — a fresh target (like Cloud SQL) will apply the current file without issue.
 
 ## 6. Daily Workflow
 

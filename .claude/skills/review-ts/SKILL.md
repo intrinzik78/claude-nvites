@@ -47,6 +47,7 @@ Flag these on sight. Severity: **B** = blocker, **W** = warning, **N** = nit.
 | Missing `lang="ts"` on `<script>` | Always `<script lang="ts">` |
 | `afterUpdate()` lifecycle | `$effect()` rune |
 | Custom events (`dispatch`, `on:`) | Callback function props |
+| `onload`/`onerror` declarative handler on SSR'd DOM element | Programmatic `addEventListener` in `$effect` — Svelte 5 emits inline `onXxx="this.__e=event"` SSR capture stub that is blocked by strict `script-src` CSP. Two-headed failure: Best Practices audit fails AND handler silently never runs on fresh loads. See `docs/SVELTE_STYLE_GUIDE.md` "DOM Event Handlers (CSP Safety)" |
 
 ### Type Architecture (all blockers)
 
@@ -74,6 +75,15 @@ Architecture.md principle: `type-system-driven-design` — make bad state unrepr
 | Raw error handling without `ApiError` class | **W** | `ApiError` with status code type guards |
 | `console.log` in production code | **N** | Structured error handling or remove |
 
+### Image Performance (warnings)
+
+| Antipattern | Sev | Instead |
+|-------------|-----|---------|
+| `<img>` without `width` and `height` attributes | **W** | Always set intrinsic dimensions — prevents layout shift (CLS) |
+| Above-fold hero without `fetchpriority="high"` | **W** | LCP images need `fetchpriority="high"` for priority signaling |
+| Below-fold image without `loading="lazy"` | **W** | Defer off-screen images — `loading="lazy"` + `decoding="async"` |
+| Hero/background image without a preload hint | **W** | Preload LCP-critical images via `<link rel="preload" as="image">` in `<svelte:head>` or a centralized preload-hints component |
+
 ### Frontend Security (all blockers)
 
 | Antipattern | Instead |
@@ -99,6 +109,7 @@ Architecture.md principle: `type-system-driven-design` — make bad state unrepr
 | Script sections out of order | **W** | types → props → destructuring → mappings → derived |
 | Component in `_components/` used by 2+ domains | **W** | Promote to `lib/components/` |
 | Duplicating a `lib/components/` primitive in `_components/` | **W** | Import and compose the primitive |
+| Application inventory data (routes, nav links, taxonomies) hardcoded in `+server.ts` or handler files | **W** | Extract to a typed module in `$lib/data/` and import — centralizes the data, makes drift with canonical sources (`seo.json`, etc.) visible in code review |
 | `goto()` in pure logic files | **N** | Split: `navLogic.ts` (pure) / `navState.ts` (browser) |
 
 ## Review Checklist
