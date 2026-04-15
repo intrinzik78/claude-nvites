@@ -1,7 +1,8 @@
 # Product Direction
 
-**Date:** 2026-04-02
+**Date:** 2026-04-02 (brand decision added 2026-04-15)
 **Status:** Working draft — captures a strategic pivot from QR analytics SaaS to marketing accountability service.
+**Brand:** **TrakSent** is the client-facing brand name (website, portal, landing pages, emails, marketing). **`nvites.me`** is gateway infrastructure only — the QR code redirect endpoint, never customer-visible. Two domains, two identities, one product.
 
 ---
 
@@ -170,11 +171,11 @@ Customer landing pages live as a route group on the existing SvelteKit website (
 
 **Cookie scoping:** First-party cookies on the website domain for unique visitor tracking. Same domain as the marketing site, which is acceptable — offer pages don't need isolated cookie space.
 
-**Domain strategy:** Industry-targeted subdomains (e.g., `acwork.nvites.me/code`) remain an option. SvelteKit can parse the `Host` header in `hooks.server.ts` to resolve subdomain context. Requires Railway wildcard DNS + subdomain routing config. Not needed for MVP — can be added when consumer-facing URL trust becomes a measurable concern.
+**Domain strategy:** Industry-targeted subdomains of the client-facing domain (e.g., `acwork.traksent.com/code`) remain an option for post-redirect URL trust. SvelteKit can parse the `Host` header in `hooks.server.ts` to resolve subdomain context. Requires Cloudflare wildcard DNS + subdomain routing config on the Cloud Run custom domain mapping. Not needed for MVP — can be added when consumer-facing URL trust becomes a measurable concern.
 
 **Maintenance mode risk:** The existing website enters maintenance mode via `PUBLIC_MODE` env var, which would take down active landing pages. Acceptable for the first 10-20 customers (website deploys are infrequent). When landing page uptime becomes critical, extract to `surface-offers` — the Svelte components, route logic, and SDK calls move wholesale (SvelteKit to SvelteKit, not a rewrite).
 
-**Gateway changes needed:** The `short_link.url` field currently holds the customer's destination URL. For campaigns with hosted landing pages, this becomes the offer route URL on the website (e.g., `https://website.nvites.me/o/{code}`). The gateway's 302 redirect behavior is unchanged — it doesn't need to know whether the destination is our landing page or an external URL.
+**Gateway changes needed:** The `short_link.url` field currently holds the customer's destination URL. For campaigns with hosted landing pages, this becomes the offer route URL on `traksent.com` (e.g., `https://traksent.com/o/{code}`). The `nvites.me` gateway's 302 redirect behavior is unchanged — it doesn't need to know whether the destination is our landing page or an external URL. The split between `nvites.me` (gateway) and `traksent.com` (landing) lives entirely in the `short_link.url` value; no new code path is required.
 
 ## The Wrapper
 
@@ -309,7 +310,7 @@ Unique phone numbers per channel is a valid alternative for call-only measuremen
     - BNI chapter selection — which local groups have the right trade mix?
     - What's the referral incentive structure? One month free? Discount? Credit toward additional campaigns?
 
-8. **What does the cancellation redirect experience look like?** Codes redirect to customer's primary URL. 301 vs 302? Generic interstitial vs clean redirect? Free-rider risk (see On Cancellation section) may influence the design — e.g., a branded interstitial "This offer was powered by nvites.me" as a middle ground.
+8. **What does the cancellation redirect experience look like?** Codes redirect to customer's primary URL. 301 vs 302? Generic interstitial vs clean redirect? Free-rider risk (see On Cancellation section) may influence the design — e.g., a branded interstitial "This offer was tracked by TrakSent" as a middle ground.
 
 9. **Print partnership logistics.** Revenue share, white-labeling, who sells. Deferred — direct consulting is the launch GTM, print partnership is a phase 4 scale play.
 
